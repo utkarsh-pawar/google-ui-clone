@@ -1,0 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans&family=Source+Sans+Pro&display=swap');
+
+.logo {
+  height: 15vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Noto Sans', sans-serif;
+}
+
+.font{
+    font-size: 5rem;
+    font-weight: 600;
+}

@@ -1,0 +1,46 @@
+.navbar {
+  display: flex;
+  justify-content: flex-end;
+  height: 3rem;
+  align-items: center;
+  
+  padding: 0.25rem;
+}
+.link-div {
+  padding: 0.5rem;
+}
+.link {
+  color: rgba(0, 0, 0, 0.87);
+  text-decoration: none;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.85rem;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+.app {
+  display: flex;
+  align-items: center;
+}
+
+.app:hover {
+  display: flex;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.082);
+  border-radius: 10rem;
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  margin: 0.3rem;
+  /* padding: 0.1rem; */
+  margin-right: 0.75rem;
+}
+
+.profile:hover {
+  background-color: rgba(0, 0, 0, 0.082);
+  cursor: pointer;
+  border-radius: 10rem;
+}
