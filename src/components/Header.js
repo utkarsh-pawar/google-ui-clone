@@ -11,7 +11,7 @@ const Header = () => {
                 <a className={classes.link} href="https://mail.google.com">Gmail</a>
             </div>
             <div className={classes['link-div']}>
-                <a className={classes.link} href="https://mail.google.com">Images</a>
+                <a className={classes.link} href="https://images.google.com">Images</a>
             </div>
             
             <div className={classes.app}>
