@@ -1,7 +1,10 @@
 {
-  "name": "google-search-clone",
-  "version": "0.1.0",
+  "name": "productivity-tracker",
+  "version": "1.0.0",
   "private": true,
+  "description": "Electron-based productivity tracker for employee work pattern analysis",
+  "main": "public/electron.js",
+  "homepage": "./",
   "dependencies": {
     "@testing-library/jest-dom": "^5.15.1",
     "@testing-library/react": "^11.2.7",
@@ -10,13 +13,40 @@
     "react-dom": "^17.0.2",
     "react-icons": "^4.3.1",
     "react-scripts": "4.0.3",
+    "recharts": "^2.13.3",
+    "uuid": "^9.0.1",
     "web-vitals": "^1.1.2"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
+    "start": "cross-env NODE_OPTIONS=--openssl-legacy-provider react-scripts start",
+    "build": "cross-env NODE_OPTIONS=--openssl-legacy-provider react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "electron": "wait-on http://localhost:3000 && cross-env ELECTRON_START_URL=http://localhost:3000 electron .",
+    "electron:dev": "concurrently \"npm start\" \"npm run electron\"",
+    "electron:build": "npm run build && electron-builder",
+    "dist": "npm run build && electron-builder --publish=never"
+  },
+  "build": {
+    "appId": "com.productivity.tracker",
+    "productName": "Productivity Tracker",
+    "files": [
+      "build/**/*",
+      "public/electron.js",
+      "public/preload.js"
+    ],
+    "directories": {
+      "buildResources": "public"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   },
   "eslintConfig": {
     "extends": [
@@ -35,5 +65,12 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^41.0.4",
+    "electron-builder": "^26.8.1",
+    "wait-on": "^9.0.4"
   }
 }
