@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line
@@ -23,15 +23,6 @@ function getLast7Days() {
   return days;
 }
 
-function getLast4Weeks() {
-  const weeks = [];
-  for (let i = 3; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i * 7);
-    weeks.push(`W${Math.ceil(d.getDate() / 7)}`);
-  }
-  return weeks;
-}
 
 const RADIAN = Math.PI / 180;
 const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
@@ -44,7 +35,6 @@ const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent
 
 export default function WorkPatternAnalysis({ employeeId }) {
   const { employees, sessions, TASK_CATEGORIES } = useData();
-  const [view, setView] = useState('week'); // week | month | all
   const employee = employees.find(e => e.id === employeeId);
 
   const empSessions = useMemo(() => sessions.filter(s => s.employeeId === employeeId), [sessions, employeeId]);
