@@ -1,0 +1,112 @@
+.em-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.em-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 12px;
+}
+
+.em-header h2 { font-size: 14px; font-weight: 600; color: #f1f5f9; }
+.em-count { font-size: 11px; color: #64748b; display: block; margin-top: 2px; }
+
+.em-form {
+  background: #1e293b;
+  margin: 0 12px 12px;
+  border-radius: 10px;
+  padding: 16px;
+  border: 1px solid #334155;
+}
+
+.em-form h3 { font-size: 13px; font-weight: 600; margin-bottom: 12px; color: #f1f5f9; }
+
+.em-form-row { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+
+.em-field { display: flex; flex-direction: column; }
+
+.em-error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 6px;
+}
+
+.em-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.em-list::-webkit-scrollbar { width: 4px; }
+.em-list::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+
+.em-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 16px;
+  text-align: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 12px;
+}
+.em-empty-icon { font-size: 32px; opacity: 0.4; }
+
+.em-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.em-card:hover { border-color: #475569; background: #263347; }
+.em-card.selected { border-color: #6366f1; background: rgba(99, 102, 241, 0.08); }
+.em-card.active { border-color: rgba(16, 185, 129, 0.4); }
+
+.em-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 15px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.em-info { flex: 1; min-width: 0; }
+.em-name { font-size: 13px; font-weight: 600; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.em-role { font-size: 11px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.em-active-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #10b981;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.em-actions { opacity: 0; transition: opacity 0.15s; }
+.em-card:hover .em-actions { opacity: 1; }

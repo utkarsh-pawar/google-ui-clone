@@ -1,0 +1,94 @@
+.wpa-container {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.wpa-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wpa-header h2 { font-size: 20px; font-weight: 700; }
+.wpa-header span { font-size: 13px; color: #94a3b8; }
+
+.wpa-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 24px;
+  text-align: center;
+  gap: 12px;
+  color: #64748b;
+}
+.wpa-empty-icon { font-size: 48px; opacity: 0.4; }
+.wpa-empty p { max-width: 300px; }
+
+/* Stats grid */
+.wpa-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.wpa-stat-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+
+.wpa-stat-card:hover { border-color: #475569; }
+.wpa-stat-card.highlight { border-color: rgba(99, 102, 241, 0.4); background: rgba(99, 102, 241, 0.05); }
+
+.wpa-stat-icon { font-size: 20px; }
+.wpa-stat-value { font-size: 24px; font-weight: 700; color: #f1f5f9; }
+.wpa-stat-label { font-size: 11px; color: #64748b; }
+
+/* Charts grid */
+.wpa-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.wpa-chart-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.wpa-chart-card.wide { grid-column: 1 / -1; }
+
+.wpa-chart-card h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #f1f5f9;
+}
+
+.wpa-no-data {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 180px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .wpa-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .wpa-charts-grid { grid-template-columns: 1fr; }
+  .wpa-chart-card.wide { grid-column: 1; }
+}
