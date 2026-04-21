@@ -44,9 +44,18 @@ function Launcher({ onOpen }) {
   );
 }
 
+function getInitialApp() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('share')) return 'split-wise';
+  return null;
+}
+
 export default function App() {
-  const [activeApp, setActiveApp] = useState(null);
-  const back = () => setActiveApp(null);
+  const [activeApp, setActiveApp] = useState(getInitialApp);
+  const back = () => {
+    window.history.replaceState(null, '', window.location.pathname);
+    setActiveApp(null);
+  };
 
   if (activeApp === 'productivity-tracker') {
     return (
