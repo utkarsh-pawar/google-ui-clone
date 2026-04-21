@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import './SplitWise.css';
 
 const STORAGE_KEY = 'splitwise-trips';
@@ -447,20 +447,18 @@ function TripHome({ trips, onOpen, onNew, onDelete, onBack }) {
 }
 
 /* ─── Root ────────────────────────────────────────────────────────────── */
+function getShareParam() {
+  return new URLSearchParams(window.location.search).get('share');
+}
+
 export default function SplitWise({ onBack }) {
-  const [view, setView] = useState('home');
+  const [sharedTrip] = useState(() => {
+    const param = getShareParam();
+    return param ? decodeTrip(param) : null;
+  });
+  const [view, setView] = useState(() => (getShareParam() ? 'readonly' : 'home'));
   const [trips, setTrips] = useState(loadTrips);
   const [activeTrip, setActiveTrip] = useState(null);
-  const [sharedTrip, setSharedTrip] = useState(null);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const shareParam = params.get('share');
-    if (shareParam) {
-      const trip = decodeTrip(shareParam);
-      if (trip) { setSharedTrip(trip); setView('readonly'); }
-    }
-  }, []);
 
   const saveTrip = useCallback((trip) => {
     setTrips(prev => {
