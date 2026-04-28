@@ -19,6 +19,14 @@ const APPS = [
     description: 'Split trip or group expenses fairly. See exactly who owes whom and how much.',
     color: '#10b981',
   },
+  {
+    id: 'location-share',
+    name: 'Location Share',
+    icon: '📍',
+    description: 'Share your live location for 30 minutes. Send a link — anyone can track you in real time.',
+    color: '#f59e0b',
+    externalUrl: process.env.REACT_APP_LOCATION_SHARE_URL || 'http://localhost:3001',
+  },
 ];
 
 function Launcher({ onOpen }) {
@@ -30,13 +38,17 @@ function Launcher({ onOpen }) {
       </header>
       <div className="launcher-grid">
         {APPS.map(app => (
-          <button key={app.id} className="app-card" onClick={() => onOpen(app.id)}>
+          <button
+            key={app.id}
+            className="app-card"
+            onClick={() => app.externalUrl ? window.open(app.externalUrl, '_blank') : onOpen(app.id)}
+          >
             <div className="app-card-icon" style={{ background: app.color }}>{app.icon}</div>
             <div className="app-card-info">
               <div className="app-card-name">{app.name}</div>
               <div className="app-card-desc">{app.description}</div>
             </div>
-            <div className="app-card-arrow">→</div>
+            <div className="app-card-arrow">{app.externalUrl ? '↗' : '→'}</div>
           </button>
         ))}
       </div>
