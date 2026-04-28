@@ -13,6 +13,17 @@
   --green: #10b981;
   --red: #ef4444;
   --yellow: #f59e0b;
+
+  /* aliases used by productivity tracker */
+  --bg-deep: #0f172a;
+  --bg-card: #1e293b;
+  --bg-hover: #263347;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  --accent-hover: #818cf8;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
 }
 
 html, body {
