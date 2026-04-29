@@ -36,9 +36,21 @@ async function loadImage(url) {
     img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error('Image load failed'));
-    img.src = url;
-    setTimeout(() => reject(new Error('Timeout')), 30000);
+    // Append timestamp to bust any non-CORS cached version
+    img.src = url + '&t=' + Date.now();
+    setTimeout(() => reject(new Error('Timeout')), 60000);
   });
+}
+
+async function loadImageWithRetry(url, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await loadImage(url);
+    } catch {
+      if (i < retries - 1) await sleep(2000 * (i + 1));
+    }
+  }
+  return null;
 }
 
 function drawSubtitle(ctx, text, alpha = 1) {
@@ -180,22 +192,20 @@ export default function VideoCreator() {
 
     const selectedStyle = STYLES.find(s => s.id === style);
 
-    // Step 1: generate images for all scenes
+    // Step 1: generate images sequentially to avoid rate limiting
     const loadedScenes = rawScenes.map(text => ({ text, image: null, error: false }));
     setScenes([...loadedScenes]);
 
-    await Promise.all(rawScenes.map(async (text, i) => {
+    for (let i = 0; i < rawScenes.length; i++) {
+      if (abortRef.current) { setStatus('idle'); return; }
       setProgress({ step: 'Generating images…', current: i + 1, total: rawScenes.length });
-      const prompt = makeImagePrompt(text, selectedStyle.suffix);
-      try {
-        const img = await loadImage(pollinationsUrl(prompt));
-        loadedScenes[i] = { text, image: img, error: false };
-      } catch {
-        // Use a fallback color image if load fails
-        loadedScenes[i] = { text, image: null, error: true };
-      }
+      const prompt = makeImagePrompt(rawScenes[i], selectedStyle.suffix);
+      const img = await loadImageWithRetry(pollinationsUrl(prompt));
+      loadedScenes[i] = { text: rawScenes[i], image: img, error: !img };
       setScenes([...loadedScenes]);
-    }));
+      // Small delay between requests to respect rate limits
+      if (i < rawScenes.length - 1) await sleep(300);
+    }
 
     if (abortRef.current) { setStatus('idle'); return; }
 
@@ -314,6 +324,11 @@ export default function VideoCreator() {
                   style={{ width: `${progress.total ? (progress.current / progress.total) * 100 : 0}%` }}
                 />
               </div>
+              {status === 'generating' && (
+                <div className={styles.recordingNote}>
+                  Loading one image at a time to avoid rate limits — scenes appear as they load
+                </div>
+              )}
               {status === 'recording' && (
                 <div className={styles.recordingNote}>
                   Recording in real-time — this takes as long as the video (~{estimatedDuration}s)
@@ -357,7 +372,7 @@ export default function VideoCreator() {
                   <div key={i} className={styles.sceneCard}>
                     <div className={styles.sceneImg}>
                       {scene.image ? (
-                        <img src={scene.image.src} alt={`Scene ${i + 1}`} />
+                        <img src={scene.image.src} alt={`Scene ${i + 1}`} crossOrigin="anonymous" />
                       ) : scene.error ? (
                         <div className={styles.imgError}>⚠ Failed</div>
                       ) : (
