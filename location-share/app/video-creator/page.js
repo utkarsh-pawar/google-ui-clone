@@ -35,22 +35,23 @@ async function loadImage(url) {
     const img = new window.Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('Image load failed'));
-    // Append timestamp to bust any non-CORS cached version
+    img.onerror = () => reject(new Error('Server rejected the request (possibly rate limited)'));
     img.src = url + '&t=' + Date.now();
-    setTimeout(() => reject(new Error('Timeout')), 60000);
+    setTimeout(() => reject(new Error('Timed out after 60s — Pollinations may be busy')), 60000);
   });
 }
 
 async function loadImageWithRetry(url, retries = 3) {
+  let lastError = '';
   for (let i = 0; i < retries; i++) {
     try {
-      return await loadImage(url);
-    } catch {
+      return { img: await loadImage(url), error: null };
+    } catch (err) {
+      lastError = err.message;
       if (i < retries - 1) await sleep(2000 * (i + 1));
     }
   }
-  return null;
+  return { img: null, error: `Failed after ${retries} attempts — ${lastError}` };
 }
 
 function drawSubtitle(ctx, text, alpha = 1) {
@@ -176,7 +177,14 @@ export default function VideoCreator() {
   const [progress, setProgress] = useState({ step: '', current: 0, total: 0 });
   const [videoUrl, setVideoUrl] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [toasts, setToasts] = useState([]);
   const abortRef = useRef(false);
+
+  const addToast = useCallback((msg, type = 'error') => {
+    const id = Date.now();
+    setToasts(t => [...t, { id, msg, type }]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 6000);
+  }, []);
 
   const sceneList = splitScenes(script);
   const estimatedDuration = sceneList.length * sceneDuration;
@@ -200,10 +208,10 @@ export default function VideoCreator() {
       if (abortRef.current) { setStatus('idle'); return; }
       setProgress({ step: 'Generating images…', current: i + 1, total: rawScenes.length });
       const prompt = makeImagePrompt(rawScenes[i], selectedStyle.suffix);
-      const img = await loadImageWithRetry(pollinationsUrl(prompt));
-      loadedScenes[i] = { text: rawScenes[i], image: img, error: !img };
+      const { img, error } = await loadImageWithRetry(pollinationsUrl(prompt));
+      loadedScenes[i] = { text: rawScenes[i], image: img, error: !!error, errorMsg: error };
       setScenes([...loadedScenes]);
-      // Small delay between requests to respect rate limits
+      if (error) addToast(`Scene ${i + 1}: ${error}`);
       if (i < rawScenes.length - 1) await sleep(300);
     }
 
@@ -374,7 +382,7 @@ export default function VideoCreator() {
                       {scene.image ? (
                         <img src={scene.image.src} alt={`Scene ${i + 1}`} crossOrigin="anonymous" />
                       ) : scene.error ? (
-                        <div className={styles.imgError}>⚠ Failed</div>
+                        <div className={styles.imgError} title={scene.errorMsg}>⚠ Failed</div>
                       ) : (
                         <div className={styles.imgLoading}>
                           <div className={styles.spinner} />
@@ -399,6 +407,17 @@ export default function VideoCreator() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Toast notifications */}
+      <div className={styles.toastStack}>
+        {toasts.map(t => (
+          <div key={t.id} className={styles.toast}>
+            <span className={styles.toastIcon}>⚠</span>
+            <span className={styles.toastMsg}>{t.msg}</span>
+            <button className={styles.toastClose} onClick={() => setToasts(ts => ts.filter(x => x.id !== t.id))}>×</button>
+          </div>
+        ))}
       </div>
     </div>
   );
