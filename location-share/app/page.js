@@ -27,6 +27,14 @@ const APPS = [
     color: '#f59e0b',
     href: '/location-share',
   },
+  {
+    id: 'video-creator',
+    name: 'Video Creator',
+    icon: '🎬',
+    description: 'Paste a script and get a YouTube-ready video with AI images and subtitles. Free, no sign-up.',
+    color: '#ec4899',
+    href: '/video-creator',
+  },
 ];
 
 export default function Launcher() {
