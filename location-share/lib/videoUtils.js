@@ -10,6 +10,14 @@ export const STYLES = [
   { id: 'abstract', label: 'Abstract', suffix: 'abstract art, colorful, modern design, visual metaphor' },
 ];
 
+export const TTS_VOICES = [
+  { id: 'Brian', label: 'Brian (UK Male)' },
+  { id: 'Amy', label: 'Amy (UK Female)' },
+  { id: 'Joanna', label: 'Joanna (US Female)' },
+  { id: 'Matthew', label: 'Matthew (US Male)' },
+  { id: 'Joey', label: 'Joey (US Male)' },
+];
+
 export function splitScenes(script) {
   return script.split(/\n\n+/).map(s => s.trim()).filter(s => s.length > 20);
 }
@@ -51,6 +59,16 @@ export async function loadImageWithRetry(url, retries = 3) {
   return { img: null, error: `Failed after ${retries} attempts — ${lastError}` };
 }
 
+export async function fetchSceneAudio(text, voice = 'Brian') {
+  try {
+    const res = await fetch(`/api/tts?voice=${voice}&text=${encodeURIComponent(text.slice(0, 400))}`);
+    if (!res.ok) return null;
+    return await res.arrayBuffer();
+  } catch {
+    return null;
+  }
+}
+
 function drawSubtitle(ctx, text) {
   const padding = 48;
   const fontSize = 34;
@@ -85,27 +103,58 @@ function drawSubtitle(ctx, text) {
   ctx.shadowBlur = 0;
 }
 
-export async function renderVideo(scenes, sceneDuration, onProgress) {
+// audioBuffers: array of ArrayBuffer|null, one per scene (empty = no audio)
+export async function renderVideo(scenes, sceneDuration, onProgress, audioBuffers = []) {
   const canvas = document.createElement('canvas');
   canvas.width = VIDEO_WIDTH;
   canvas.height = VIDEO_HEIGHT;
   const ctx = canvas.getContext('2d');
 
+  // Set up audio if any scene has audio
+  const hasAudio = audioBuffers.some(Boolean);
+  let audioCtx = null;
+  let audioDest = null;
+  const decodedAudio = [];
+
+  if (hasAudio) {
+    audioCtx = new AudioContext();
+    audioDest = audioCtx.createMediaStreamDestination();
+    for (let i = 0; i < scenes.length; i++) {
+      if (audioBuffers[i]) {
+        try {
+          decodedAudio[i] = await audioCtx.decodeAudioData(audioBuffers[i].slice(0));
+        } catch {
+          decodedAudio[i] = null;
+        }
+      } else {
+        decodedAudio[i] = null;
+      }
+    }
+  }
+
   const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
     ? 'video/webm;codecs=vp9' : 'video/webm';
 
-  const stream = canvas.captureStream(FPS);
+  const canvasStream = canvas.captureStream(FPS);
+  const allTracks = [...canvasStream.getTracks()];
+  if (hasAudio && audioDest) allTracks.push(...audioDest.stream.getTracks());
+
+  const stream = new MediaStream(allTracks);
   const recorder = new MediaRecorder(stream, { mimeType });
   const chunks = [];
   recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
   recorder.start(100);
 
   const FADE_MS = 400;
-  const HOLD_MS = Math.max(500, sceneDuration * 1000 - FADE_MS * 2);
 
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i];
     onProgress(i + 1, scenes.length);
+
+    // Extend scene to fit TTS audio if it's longer than sceneDuration
+    const audioDuration = decodedAudio[i]?.duration ?? 0;
+    const effectiveDuration = Math.max(sceneDuration, audioDuration > 0 ? audioDuration + 0.8 : 0);
+    const HOLD_MS = Math.max(500, effectiveDuration * 1000 - FADE_MS * 2);
 
     const drawFrame = (alpha) => {
       ctx.globalAlpha = 1;
@@ -119,6 +168,15 @@ export async function renderVideo(scenes, sceneDuration, onProgress) {
     };
 
     const fadeFrames = Math.floor((FADE_MS / 1000) * FPS);
+
+    // Start TTS audio after fade-in completes
+    if (audioCtx && decodedAudio[i]) {
+      const source = audioCtx.createBufferSource();
+      source.buffer = decodedAudio[i];
+      source.connect(audioDest);
+      source.start(audioCtx.currentTime + FADE_MS / 1000);
+    }
+
     for (let f = 0; f <= fadeFrames; f++) { drawFrame(f / fadeFrames); await sleep(1000 / FPS); }
     const holdFrames = Math.floor((HOLD_MS / 1000) * FPS);
     for (let f = 0; f < holdFrames; f++) { drawFrame(1); await sleep(1000 / FPS); }
@@ -126,6 +184,8 @@ export async function renderVideo(scenes, sceneDuration, onProgress) {
   }
 
   recorder.stop();
+  if (audioCtx) audioCtx.close();
+
   return new Promise(resolve => {
     recorder.onstop = () => resolve(URL.createObjectURL(new Blob(chunks, { type: 'video/webm' })));
   });
