@@ -1,27 +1,28 @@
 export const maxDuration = 60;
 
 const UNSPLASH_KEY = process.env.UNSPLASH_ACCESS_KEY;
+const PEXELS_KEY   = process.env.PEXELS_API_KEY;
 
-// Extract meaningful search keywords from a scene prompt
-function toUnsplashQuery(prompt) {
-  const stop = new Set([
-    'the','a','an','and','or','but','in','on','at','to','for','of','with',
-    'is','are','was','were','be','been','have','has','had','do','does','did',
-    'will','would','could','should','may','might','that','this','these','those',
-    'it','its','from','by','as','so','if','then','when','where','how','what',
-    'which','who','not','no','all','just','more','very','also','than','into',
-  ]);
+const STOP_WORDS = new Set([
+  'the','a','an','and','or','but','in','on','at','to','for','of','with',
+  'is','are','was','were','be','been','have','has','had','do','does','did',
+  'will','would','could','should','may','might','that','this','these','those',
+  'it','its','from','by','as','so','if','then','when','where','how','what',
+  'which','who','not','no','all','just','more','very','also','than','into',
+]);
+
+function toSearchQuery(prompt) {
   return prompt
     .replace(/[^\w\s]/g, ' ')
     .split(/\s+/)
-    .filter(w => w.length > 2 && !stop.has(w.toLowerCase()))
+    .filter(w => w.length > 2 && !STOP_WORDS.has(w.toLowerCase()))
     .slice(0, 5)
     .join(' ');
 }
 
 async function fetchUnsplash(prompt, width, height) {
   const orientation = height > width ? 'portrait' : 'landscape';
-  const query = toUnsplashQuery(prompt);
+  const query = toSearchQuery(prompt);
 
   const apiRes = await fetch(
     `https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&orientation=${orientation}&count=1`,
@@ -30,7 +31,6 @@ async function fetchUnsplash(prompt, width, height) {
       signal: AbortSignal.timeout(15000),
     }
   );
-
   if (!apiRes.ok) throw new Error(`Unsplash API ${apiRes.status}`);
   const [photo] = await apiRes.json();
   if (!photo?.urls?.raw) throw new Error('No photo returned');
@@ -40,6 +40,29 @@ async function fetchUnsplash(prompt, width, height) {
   if (!imgRes.ok) throw new Error(`Unsplash CDN ${imgRes.status}`);
 
   return { buffer: await imgRes.arrayBuffer(), credit: `${photo.user.name} on Unsplash` };
+}
+
+async function fetchPexels(prompt, width, height) {
+  const orientation = height > width ? 'portrait' : 'landscape';
+  const query = toSearchQuery(prompt);
+
+  const apiRes = await fetch(
+    `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=15&orientation=${orientation}&page=1`,
+    {
+      headers: { Authorization: PEXELS_KEY },
+      signal: AbortSignal.timeout(15000),
+    }
+  );
+  if (!apiRes.ok) throw new Error(`Pexels API ${apiRes.status}`);
+  const data = await apiRes.json();
+  if (!data.photos?.length) throw new Error('No Pexels photos found');
+
+  const photo = data.photos[Math.floor(Math.random() * data.photos.length)];
+  const src = height > width ? photo.src.portrait : photo.src.landscape;
+  const imgRes = await fetch(src || photo.src.large2x, { signal: AbortSignal.timeout(20000) });
+  if (!imgRes.ok) throw new Error(`Pexels CDN ${imgRes.status}`);
+
+  return { buffer: await imgRes.arrayBuffer(), credit: `${photo.photographer} on Pexels` };
 }
 
 async function fetchPollinations(prompt, width, height) {
@@ -53,41 +76,47 @@ async function fetchPollinations(prompt, width, height) {
   return { buffer: await res.arrayBuffer(), credit: null };
 }
 
+// Priority order based on available keys
+function getSources(idx) {
+  const photo = [];
+  if (UNSPLASH_KEY) photo.push(fetchUnsplash);
+  if (PEXELS_KEY)   photo.push(fetchPexels);
+
+  if (photo.length === 0) {
+    // No photo keys — just use Pollinations
+    return [fetchPollinations];
+  }
+
+  if (photo.length === 2) {
+    // Alternate Unsplash / Pexels, Pollinations as last resort
+    return [photo[idx % 2], photo[(idx + 1) % 2], fetchPollinations];
+  }
+
+  // Only one photo source — use it, Pollinations as fallback
+  return [photo[0], fetchPollinations];
+}
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const prompt = searchParams.get('prompt') || '';
   const width  = parseInt(searchParams.get('width')  || '1280', 10);
   const height = parseInt(searchParams.get('height') || '720',  10);
-
-  const idx = parseInt(searchParams.get('idx') || '0', 10);
-  // Alternate: even idx → Pollinations, odd idx → Unsplash (gives each a cooldown)
-  const useUnsplash = UNSPLASH_KEY && idx % 2 !== 0;
+  const idx    = parseInt(searchParams.get('idx')    || '0',    10);
 
   if (!prompt) return new Response('Missing prompt', { status: 400 });
 
-  try {
-    const { buffer, credit } = useUnsplash
-      ? await fetchUnsplash(prompt, width, height)
-      : await fetchPollinations(prompt, width, height);
+  const sources = getSources(idx);
 
-    const headers = {
-      'Content-Type': 'image/jpeg',
-      'Cache-Control': 'public, max-age=86400',
-    };
-    if (credit) headers['X-Photo-Credit'] = credit;
-
-    return new Response(buffer, { headers });
-  } catch (err) {
-    // Primary failed — try the other source as fallback
+  for (const source of sources) {
     try {
-      const { buffer } = useUnsplash
-        ? await fetchPollinations(prompt, width, height)
-        : UNSPLASH_KEY ? await fetchUnsplash(prompt, width, height) : Promise.reject();
-      return new Response(buffer, {
-        headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400' },
-      });
+      const { buffer, credit } = await source(prompt, width, height);
+      const headers = { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400' };
+      if (credit) headers['X-Photo-Credit'] = credit;
+      return new Response(buffer, { headers });
     } catch {
-      return new Response(err.message || 'Both image sources failed', { status: 502 });
+      // try next source
     }
   }
+
+  return new Response('All image sources failed', { status: 502 });
 }
