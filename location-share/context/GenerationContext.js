@@ -69,7 +69,7 @@ export function GenerationProvider({ children }) {
 
     await processInBatches(rawScenes, async (text, idx) => {
       const prompt = makeImagePrompt(text, selectedStyle.suffix, selectedFormat);
-      return loadImage(pollinationsUrl(prompt, selectedFormat.width, selectedFormat.height));
+      return loadImage(pollinationsUrl(prompt, selectedFormat.width, selectedFormat.height, idx));
     }, {
       batchSize: 2,
       retries: 3,
