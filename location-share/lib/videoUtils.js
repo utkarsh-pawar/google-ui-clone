@@ -183,6 +183,8 @@ export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffe
 
   if (hasAudio) {
     audioCtx = new AudioContext();
+    // Mobile browsers suspend AudioContext until resumed explicitly
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
     audioDest = audioCtx.createMediaStreamDestination();
     for (let i = 0; i < scenes.length; i++) {
       if (audioBuffers[i]) {
