@@ -2,7 +2,7 @@
 import { createContext, useContext, useState, useRef, useCallback } from 'react';
 import {
   STYLES, splitScenes, makeImagePrompt, pollinationsUrl,
-  loadImageWithRetry, renderVideo, sleep
+  loadImageWithRetry, fetchSceneAudio, renderVideo, sleep
 } from '@/lib/videoUtils';
 
 const GenerationContext = createContext(null);
@@ -16,7 +16,6 @@ function loadHistory() {
 
 function saveHistory(history) {
   try {
-    // Only save metadata, not the video blob
     const meta = history.map(({ videoUrl, scenes, ...rest }) => ({
       ...rest,
       sceneCount: scenes?.length || rest.sceneCount || 0,
@@ -41,7 +40,7 @@ export function GenerationProvider({ children }) {
     setToasts(t => t.filter(x => x.id !== id));
   }, []);
 
-  const startGeneration = useCallback(async ({ script, style, sceneDuration }) => {
+  const startGeneration = useCallback(async ({ script, style, sceneDuration, narration, voice }) => {
     abortRef.current = false;
     const rawScenes = splitScenes(script);
     if (!rawScenes.length) return;
@@ -51,7 +50,7 @@ export function GenerationProvider({ children }) {
     const selectedStyle = STYLES.find(s => s.id === style) || STYLES[0];
 
     const initial = {
-      id, title, style, sceneDuration, rawScenes,
+      id, title, style, sceneDuration, narration, voice, rawScenes,
       scenes: rawScenes.map(text => ({ text, image: null, error: false, errorMsg: null })),
       progress: { step: 'Generating images…', current: 0, total: rawScenes.length },
       status: 'generating',
@@ -81,13 +80,27 @@ export function GenerationProvider({ children }) {
 
     if (abortRef.current) { setActive(a => ({ ...a, status: 'cancelled' })); return; }
 
-    // Phase 2: record video
+    // Phase 2 (optional): fetch TTS narration
+    let audioBuffers = [];
+    if (narration) {
+      setActive(a => ({ ...a, status: 'generating', progress: { step: 'Generating narration…', current: 0, total: rawScenes.length } }));
+      for (let i = 0; i < rawScenes.length; i++) {
+        if (abortRef.current) { setActive(a => ({ ...a, status: 'cancelled' })); return; }
+        setActive(a => ({ ...a, progress: { step: 'Generating narration…', current: i + 1, total: rawScenes.length } }));
+        const buf = await fetchSceneAudio(rawScenes[i], voice || 'Brian');
+        audioBuffers.push(buf);
+      }
+    }
+
+    if (abortRef.current) { setActive(a => ({ ...a, status: 'cancelled' })); return; }
+
+    // Phase 3: record video
     setActive(a => ({ ...a, status: 'recording', progress: { step: 'Recording video…', current: 0, total: scenes.length } }));
 
     try {
       const videoUrl = await renderVideo(scenes, sceneDuration, (current, total) => {
         setActive(a => ({ ...a, progress: { step: 'Recording video…', current, total } }));
-      });
+      }, audioBuffers);
 
       const done = { ...initial, scenes, status: 'done', videoUrl, progress: { step: 'Done', current: scenes.length, total: scenes.length } };
       setActive(done);

@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGeneration } from '@/context/GenerationContext';
-import { STYLES, splitScenes } from '@/lib/videoUtils';
+import { STYLES, TTS_VOICES, splitScenes } from '@/lib/videoUtils';
 import styles from './page.module.css';
 
 export default function VideoCreator() {
@@ -11,13 +11,15 @@ export default function VideoCreator() {
   const [script, setScript] = useState('');
   const [style, setStyle] = useState(STYLES[0].id);
   const [sceneDuration, setSceneDuration] = useState(4);
+  const [narration, setNarration] = useState(false);
+  const [voice, setVoice] = useState(TTS_VOICES[0].id);
 
   const sceneList = splitScenes(script);
   const estimatedDuration = sceneList.length * sceneDuration;
 
   const handleGenerate = () => {
     if (!sceneList.length) return;
-    startGeneration({ script, style, sceneDuration });
+    startGeneration({ script, style, sceneDuration, narration, voice });
     router.push('/video-creator/generations');
   };
 
@@ -79,6 +81,38 @@ export default function VideoCreator() {
                 className={styles.range}
               />
               <div className={styles.rangeLabels}><span>2s (fast)</span><span>10s (slow)</span></div>
+            </div>
+
+            <div className={styles.settingRow}>
+              <label className={styles.narrationToggle}>
+                <div className={`${styles.toggleTrack} ${narration ? styles.toggleOn : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={narration}
+                    onChange={e => setNarration(e.target.checked)}
+                    className={styles.toggleInput}
+                  />
+                  <span className={styles.toggleThumb} />
+                </div>
+                <span className={styles.narrationLabel}>
+                  AI Narration (TTS)
+                  <span className={styles.narrationHint}>reads script aloud in the video</span>
+                </span>
+              </label>
+
+              {narration && (
+                <div className={styles.voiceGrid}>
+                  {TTS_VOICES.map(v => (
+                    <button
+                      key={v.id}
+                      className={`${styles.styleBtn} ${voice === v.id ? styles.styleBtnActive : ''}`}
+                      onClick={() => setVoice(v.id)}
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
