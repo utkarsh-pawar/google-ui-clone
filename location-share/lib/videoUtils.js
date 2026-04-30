@@ -40,8 +40,9 @@ export function makeImagePrompt(text, styleSuffix, format = FORMATS[0]) {
   return `${cleaned}, ${styleSuffix}, ${aspect}, high quality`;
 }
 
+// Routes through our server so Vercel's IP hits Pollinations, not the user's browser IP
 export function pollinationsUrl(prompt, width = VIDEO_WIDTH, height = VIDEO_HEIGHT) {
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${width}&height=${height}&nologo=true&seed=${Math.floor(Math.random() * 9999)}`;
+  return `/api/image?prompt=${encodeURIComponent(prompt)}&width=${width}&height=${height}`;
 }
 
 export function sleep(ms) {
@@ -53,9 +54,9 @@ export async function loadImage(url) {
     const img = new window.Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('Server rejected the request (possibly rate limited)'));
-    img.src = url + '&t=' + Date.now();
-    setTimeout(() => reject(new Error('Timed out after 60s — Pollinations may be busy')), 60000);
+    img.onerror = () => reject(new Error('Image proxy failed — Pollinations may be down or rate-limited'));
+    img.src = url;
+    setTimeout(() => reject(new Error('Timed out after 60s')), 60000);
   });
 }
 

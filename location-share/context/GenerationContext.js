@@ -73,8 +73,8 @@ export function GenerationProvider({ children }) {
     }, {
       batchSize: 2,
       retries: 3,
-      retryDelay: 2000,
-      batchDelay: 300,
+      retryDelay: 3000,
+      batchDelay: 800,
       abortRef,
       onItemDone: (idx, img, error) => {
         doneCount++;
