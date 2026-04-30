@@ -40,9 +40,9 @@ export function makeImagePrompt(text, styleSuffix, format = FORMATS[0]) {
   return `${cleaned}, ${styleSuffix}, ${aspect}, high quality`;
 }
 
-// Routes through our server so Vercel's IP hits Pollinations, not the user's browser IP
-export function pollinationsUrl(prompt, width = VIDEO_WIDTH, height = VIDEO_HEIGHT) {
-  return `/api/image?prompt=${encodeURIComponent(prompt)}&width=${width}&height=${height}`;
+// Routes through our server. idx used to alternate between sources for rate-limit cooldown.
+export function pollinationsUrl(prompt, width = VIDEO_WIDTH, height = VIDEO_HEIGHT, idx = 0) {
+  return `/api/image?prompt=${encodeURIComponent(prompt)}&width=${width}&height=${height}&idx=${idx}`;
 }
 
 export function sleep(ms) {

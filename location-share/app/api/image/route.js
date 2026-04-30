@@ -59,10 +59,14 @@ export async function GET(request) {
   const width  = parseInt(searchParams.get('width')  || '1280', 10);
   const height = parseInt(searchParams.get('height') || '720',  10);
 
+  const idx = parseInt(searchParams.get('idx') || '0', 10);
+  // Alternate: even idx → Pollinations, odd idx → Unsplash (gives each a cooldown)
+  const useUnsplash = UNSPLASH_KEY && idx % 2 !== 0;
+
   if (!prompt) return new Response('Missing prompt', { status: 400 });
 
   try {
-    const { buffer, credit } = UNSPLASH_KEY
+    const { buffer, credit } = useUnsplash
       ? await fetchUnsplash(prompt, width, height)
       : await fetchPollinations(prompt, width, height);
 
@@ -74,15 +78,16 @@ export async function GET(request) {
 
     return new Response(buffer, { headers });
   } catch (err) {
-    // If Unsplash fails, fall back to Pollinations
-    if (UNSPLASH_KEY) {
-      try {
-        const { buffer } = await fetchPollinations(prompt, width, height);
-        return new Response(buffer, {
-          headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400' },
-        });
-      } catch {}
+    // Primary failed — try the other source as fallback
+    try {
+      const { buffer } = useUnsplash
+        ? await fetchPollinations(prompt, width, height)
+        : UNSPLASH_KEY ? await fetchUnsplash(prompt, width, height) : Promise.reject();
+      return new Response(buffer, {
+        headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400' },
+      });
+    } catch {
+      return new Response(err.message || 'Both image sources failed', { status: 502 });
     }
-    return new Response(err.message || 'Image fetch failed', { status: 502 });
   }
 }
