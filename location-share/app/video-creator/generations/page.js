@@ -32,6 +32,9 @@ function SceneGrid({ scenes }) {
           <div className={styles.sceneText}>
             <span className={styles.sceneNum}>Scene {i + 1}</span>
             <p>{scene.text.slice(0, 100)}{scene.text.length > 100 ? '…' : ''}</p>
+            {scene.error && scene.errorMsg && (
+              <p className={styles.sceneError}>{scene.errorMsg}</p>
+            )}
           </div>
         </div>
       ))}
