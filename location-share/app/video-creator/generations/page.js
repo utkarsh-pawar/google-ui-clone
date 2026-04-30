@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useGeneration } from '@/context/GenerationContext';
 import styles from './page.module.css';
 
@@ -126,7 +127,7 @@ export default function GenerationsPage() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <a href="/video-creator" className={styles.back}>← New Video</a>
+        <Link href="/video-creator" className={styles.back}>← New Video</Link>
         <div className={styles.headerCenter}>
           <span className={styles.logo}>🎬</span>
           <div>
@@ -134,7 +135,7 @@ export default function GenerationsPage() {
             <div className={styles.subtitle}>Live progress & history</div>
           </div>
         </div>
-        <a href="/" className={styles.homeLink}>Home →</a>
+        <Link href="/" className={styles.homeLink}>Home →</Link>
       </header>
 
       <div className={styles.body}>
@@ -145,7 +146,7 @@ export default function GenerationsPage() {
             <div className={styles.emptyIcon}>🎬</div>
             <div className={styles.emptyTitle}>No active generation</div>
             <div className={styles.emptySub}>
-              <a href="/video-creator" className={styles.emptyLink}>Create a new video →</a>
+              <Link href="/video-creator" className={styles.emptyLink}>Create a new video →</Link>
             </div>
           </div>
         )}
