@@ -2,7 +2,7 @@
 import { createContext, useContext, useState, useRef, useCallback } from 'react';
 import {
   STYLES, FORMATS, splitScenes, sceneDurationFromText, makeImagePrompt, pollinationsUrl,
-  loadImageWithRetry, fetchSceneAudio, renderVideo, sleep
+  loadImage, processInBatches, fetchSceneAudio, renderVideo, sleep
 } from '@/lib/videoUtils';
 
 const GenerationContext = createContext(null);
@@ -63,22 +63,30 @@ export function GenerationProvider({ children }) {
 
     setActive(initial);
 
-    // Phase 1: generate images sequentially
+    // Phase 1: generate images — batches of 2 concurrent, 3 retries each
     const scenes = [...initial.scenes];
-    for (let i = 0; i < rawScenes.length; i++) {
-      if (abortRef.current) {
-        setActive(a => ({ ...a, status: 'cancelled' }));
-        return;
-      }
-      setActive(a => ({ ...a, progress: { step: 'Generating images…', current: i + 1, total: rawScenes.length } }));
+    let doneCount = 0;
 
-      const prompt = makeImagePrompt(rawScenes[i], selectedStyle.suffix, selectedFormat);
-      const { img, error } = await loadImageWithRetry(pollinationsUrl(prompt, selectedFormat.width, selectedFormat.height));
-      scenes[i] = { text: rawScenes[i], image: img, error: !!error, errorMsg: error };
-      setActive(a => ({ ...a, scenes: [...scenes] }));
-      if (error) addToast(`Scene ${i + 1}: ${error}`);
-      if (i < rawScenes.length - 1) await sleep(100);
-    }
+    await processInBatches(rawScenes, async (text, idx) => {
+      const prompt = makeImagePrompt(text, selectedStyle.suffix, selectedFormat);
+      return loadImage(pollinationsUrl(prompt, selectedFormat.width, selectedFormat.height));
+    }, {
+      batchSize: 2,
+      retries: 3,
+      retryDelay: 2000,
+      batchDelay: 300,
+      abortRef,
+      onItemDone: (idx, img, error) => {
+        doneCount++;
+        scenes[idx] = { text: rawScenes[idx], image: img, error: !!error, errorMsg: error };
+        if (error) addToast(`Scene ${idx + 1}: ${error}`);
+        setActive(a => ({
+          ...a,
+          scenes: [...scenes],
+          progress: { step: 'Generating images…', current: doneCount, total: rawScenes.length },
+        }));
+      },
+    });
 
     if (abortRef.current) { setActive(a => ({ ...a, status: 'cancelled' })); return; }
 
