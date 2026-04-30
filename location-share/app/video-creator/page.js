@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGeneration } from '@/context/GenerationContext';
+import Link from 'next/link';
 import { STYLES, TTS_VOICES, splitScenes } from '@/lib/videoUtils';
 import styles from './page.module.css';
 
@@ -26,7 +27,7 @@ export default function VideoCreator() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <a href="/" className={styles.back}>← Back</a>
+        <Link href="/" className={styles.back}>← Back</Link>
         <div className={styles.headerCenter}>
           <span className={styles.logo}>🎬</span>
           <div>
@@ -34,9 +35,9 @@ export default function VideoCreator() {
             <div className={styles.subtitle}>Script → YouTube video</div>
           </div>
         </div>
-        <a href="/video-creator/generations" className={styles.historyLink}>
+        <Link href="/video-creator/generations" className={styles.historyLink}>
           My Generations →
-        </a>
+        </Link>
       </header>
 
       <div className={styles.formBody}>
@@ -118,7 +119,7 @@ export default function VideoCreator() {
 
           {active && active.status !== 'done' && active.status !== 'error' && active.status !== 'cancelled' && (
             <div className={styles.activeWarning}>
-              A generation is already in progress. <a href="/video-creator/generations">View progress →</a>
+              A generation is already in progress. <Link href="/video-creator/generations">View progress →</Link>
             </div>
           )}
 
