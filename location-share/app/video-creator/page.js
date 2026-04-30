@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGeneration } from '@/context/GenerationContext';
 import Link from 'next/link';
-import { STYLES, TTS_VOICES, splitScenes } from '@/lib/videoUtils';
+import { STYLES, TTS_VOICES, splitScenes, sceneDurationFromText } from '@/lib/videoUtils';
 import styles from './page.module.css';
 
 export default function VideoCreator() {
@@ -11,16 +11,16 @@ export default function VideoCreator() {
   const { startGeneration, active } = useGeneration();
   const [script, setScript] = useState('');
   const [style, setStyle] = useState(STYLES[0].id);
-  const [sceneDuration, setSceneDuration] = useState(4);
+  const [speedMultiplier, setSpeedMultiplier] = useState(1);
   const [narration, setNarration] = useState(false);
   const [voice, setVoice] = useState(TTS_VOICES[0].id);
 
   const sceneList = splitScenes(script);
-  const estimatedDuration = sceneList.length * sceneDuration;
+  const estimatedDuration = Math.round(sceneList.reduce((s, t) => s + sceneDurationFromText(t, speedMultiplier), 0));
 
   const handleGenerate = () => {
     if (!sceneList.length) return;
-    startGeneration({ script, style, sceneDuration, narration, voice });
+    startGeneration({ script, style, speedMultiplier, narration, voice });
     router.push('/video-creator/generations');
   };
 
@@ -74,14 +74,15 @@ export default function VideoCreator() {
 
             <div className={styles.settingRow}>
               <label className={styles.settingLabel}>
-                Seconds per scene: <strong>{sceneDuration}s</strong>
+                Pacing: <strong>{speedMultiplier === 0.5 ? 'Fast' : speedMultiplier === 1 ? 'Normal' : speedMultiplier === 1.5 ? 'Relaxed' : 'Slow'}</strong>
+                <span style={{color:'var(--dim)',fontWeight:400}}> — durations scale with text length</span>
               </label>
               <input
-                type="range" min={2} max={10} value={sceneDuration}
-                onChange={e => setSceneDuration(Number(e.target.value))}
+                type="range" min={0.5} max={2} step={0.5} value={speedMultiplier}
+                onChange={e => setSpeedMultiplier(Number(e.target.value))}
                 className={styles.range}
               />
-              <div className={styles.rangeLabels}><span>2s (fast)</span><span>10s (slow)</span></div>
+              <div className={styles.rangeLabels}><span>Fast</span><span>Slow</span></div>
             </div>
 
             <div className={styles.settingRow}>
