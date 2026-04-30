@@ -72,6 +72,55 @@ export async function loadImageWithRetry(url, retries = 3) {
   return { img: null, error: `Failed after ${retries} attempts — ${lastError}` };
 }
 
+/**
+ * Process items in concurrent batches with per-item retry.
+ * Mimics BullMQ worker behaviour (concurrency + retries) without Redis.
+ *
+ * processor(item, index, attempt) should throw on failure.
+ * onItemDone(index, data, errorMsg) called as each item finishes/fails.
+ */
+export async function processInBatches(items, processor, {
+  batchSize = 2,
+  retries = 3,
+  retryDelay = 2000,  // ms; doubles each attempt
+  batchDelay = 400,   // ms between batches
+  abortRef = null,
+  onItemDone = null,
+} = {}) {
+  const results = new Array(items.length);
+
+  for (let start = 0; start < items.length; start += batchSize) {
+    if (abortRef?.current) break;
+
+    const indices = Array.from(
+      { length: Math.min(batchSize, items.length - start) },
+      (_, j) => start + j,
+    );
+
+    await Promise.all(indices.map(async idx => {
+      let lastErr = null;
+      for (let attempt = 0; attempt < retries; attempt++) {
+        if (abortRef?.current) return;
+        try {
+          const data = await processor(items[idx], idx, attempt);
+          results[idx] = { ok: true, data };
+          onItemDone?.(idx, data, null);
+          return;
+        } catch (err) {
+          lastErr = err.message ?? String(err);
+          if (attempt < retries - 1) await sleep(retryDelay * (attempt + 1));
+        }
+      }
+      results[idx] = { ok: false, error: lastErr };
+      onItemDone?.(idx, null, lastErr);
+    }));
+
+    if (start + batchSize < items.length) await sleep(batchDelay);
+  }
+
+  return results;
+}
+
 export async function fetchSceneAudio(text, voice = 'Brian') {
   try {
     const res = await fetch(`/api/tts?voice=${voice}&text=${encodeURIComponent(text.slice(0, 400))}`);
