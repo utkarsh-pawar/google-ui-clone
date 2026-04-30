@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGeneration } from '@/context/GenerationContext';
 import Link from 'next/link';
-import { STYLES, TTS_VOICES, splitScenes, sceneDurationFromText } from '@/lib/videoUtils';
+import { STYLES, FORMATS, TTS_VOICES, splitScenes, sceneDurationFromText } from '@/lib/videoUtils';
 import styles from './page.module.css';
 
 export default function VideoCreator() {
@@ -11,6 +11,7 @@ export default function VideoCreator() {
   const { startGeneration, active } = useGeneration();
   const [script, setScript] = useState('');
   const [style, setStyle] = useState(STYLES[0].id);
+  const [format, setFormat] = useState(FORMATS[0].id);
   const [speedMultiplier, setSpeedMultiplier] = useState(1);
   const [narration, setNarration] = useState(false);
   const [voice, setVoice] = useState(TTS_VOICES[0].id);
@@ -20,7 +21,7 @@ export default function VideoCreator() {
 
   const handleGenerate = () => {
     if (!sceneList.length) return;
-    startGeneration({ script, style, speedMultiplier, narration, voice });
+    startGeneration({ script, style, format, speedMultiplier, narration, voice });
     router.push('/video-creator/generations');
   };
 
@@ -57,6 +58,23 @@ export default function VideoCreator() {
           )}
 
           <div className={styles.settings}>
+            <div className={styles.settingRow}>
+              <label className={styles.settingLabel}>Format</label>
+              <div className={styles.formatGrid}>
+                {FORMATS.map(f => (
+                  <button
+                    key={f.id}
+                    className={`${styles.formatBtn} ${format === f.id ? styles.formatBtnActive : ''}`}
+                    onClick={() => setFormat(f.id)}
+                  >
+                    <span className={styles.formatIcon}>{f.icon}</span>
+                    <span className={styles.formatLabel}>{f.label}</span>
+                    <span className={styles.formatHint}>{f.hint}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className={styles.settingRow}>
               <label className={styles.settingLabel}>Visual Style</label>
               <div className={styles.styleGrid}>

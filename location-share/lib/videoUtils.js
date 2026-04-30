@@ -2,6 +2,11 @@ export const VIDEO_WIDTH = 1280;
 export const VIDEO_HEIGHT = 720;
 export const FPS = 30;
 
+export const FORMATS = [
+  { id: 'landscape', label: 'YouTube Video', hint: '16:9', width: 1280, height: 720,  icon: '🖥' },
+  { id: 'portrait',  label: 'YouTube Shorts', hint: '9:16', width: 1080, height: 1920, icon: '📱' },
+];
+
 export const STYLES = [
   { id: 'cinematic', label: 'Cinematic', suffix: 'cinematic photography, dramatic lighting, film grain, professional' },
   { id: 'realistic', label: 'Realistic', suffix: 'photorealistic, high resolution, detailed, sharp' },
@@ -29,13 +34,14 @@ export function sceneDurationFromText(text, multiplier = 1) {
   return Math.round(base * multiplier * 10) / 10;
 }
 
-export function makeImagePrompt(text, styleSuffix) {
+export function makeImagePrompt(text, styleSuffix, format = FORMATS[0]) {
   const cleaned = text.replace(/[^\w\s,]/g, ' ').slice(0, 200);
-  return `${cleaned}, ${styleSuffix}, 16:9 aspect ratio, high quality`;
+  const aspect = format.id === 'portrait' ? '9:16 aspect ratio, vertical composition, portrait orientation' : '16:9 aspect ratio';
+  return `${cleaned}, ${styleSuffix}, ${aspect}, high quality`;
 }
 
-export function pollinationsUrl(prompt) {
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${VIDEO_WIDTH}&height=${VIDEO_HEIGHT}&nologo=true&seed=${Math.floor(Math.random() * 9999)}`;
+export function pollinationsUrl(prompt, width = VIDEO_WIDTH, height = VIDEO_HEIGHT) {
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${width}&height=${height}&nologo=true&seed=${Math.floor(Math.random() * 9999)}`;
 }
 
 export function sleep(ms) {
@@ -76,10 +82,10 @@ export async function fetchSceneAudio(text, voice = 'Brian') {
   }
 }
 
-function drawSubtitle(ctx, text) {
+function drawSubtitle(ctx, text, W, H) {
   const padding = 48;
-  const fontSize = 34;
-  const maxWidth = VIDEO_WIDTH - padding * 2;
+  const fontSize = W < 900 ? 38 : 34; // slightly larger for portrait
+  const maxWidth = W - padding * 2;
   const lineHeight = fontSize * 1.5;
 
   ctx.font = `600 ${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
@@ -97,24 +103,26 @@ function drawSubtitle(ctx, text) {
   const display = lines.slice(0, 3);
 
   const totalH = display.length * lineHeight + 32;
-  const y = VIDEO_HEIGHT - totalH - 24;
+  const y = H - totalH - 24;
 
   ctx.globalAlpha = 0.75;
   ctx.fillStyle = '#000';
-  ctx.fillRect(0, y - 8, VIDEO_WIDTH, totalH + 16);
+  ctx.fillRect(0, y - 8, W, totalH + 16);
   ctx.globalAlpha = 1;
   ctx.fillStyle = '#fff';
   ctx.shadowColor = 'rgba(0,0,0,0.8)';
   ctx.shadowBlur = 6;
-  display.forEach((l, i) => ctx.fillText(l, VIDEO_WIDTH / 2, y + i * lineHeight + fontSize));
+  display.forEach((l, i) => ctx.fillText(l, W / 2, y + i * lineHeight + fontSize));
   ctx.shadowBlur = 0;
 }
 
 // sceneDurations: number (uniform) or number[] (per-scene). audioBuffers: ArrayBuffer[]|null[]
-export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffers = []) {
+export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffers = [], format = FORMATS[0]) {
+  const W = format.width;
+  const H = format.height;
   const canvas = document.createElement('canvas');
-  canvas.width = VIDEO_WIDTH;
-  canvas.height = VIDEO_HEIGHT;
+  canvas.width = W;
+  canvas.height = H;
   const ctx = canvas.getContext('2d');
 
   // Set up audio if any scene has audio
@@ -166,13 +174,13 @@ export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffe
 
     const drawFrame = (alpha) => {
       ctx.globalAlpha = 1;
-      if (scene.image) ctx.drawImage(scene.image, 0, 0, VIDEO_WIDTH, VIDEO_HEIGHT);
-      else { ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, VIDEO_WIDTH, VIDEO_HEIGHT); }
+      if (scene.image) ctx.drawImage(scene.image, 0, 0, W, H);
+      else { ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, W, H); }
       ctx.globalAlpha = 1 - alpha;
       ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, VIDEO_WIDTH, VIDEO_HEIGHT);
+      ctx.fillRect(0, 0, W, H);
       ctx.globalAlpha = 1;
-      drawSubtitle(ctx, scene.text);
+      drawSubtitle(ctx, scene.text, W, H);
     };
 
     const fadeFrames = Math.floor((FADE_MS / 1000) * FPS);

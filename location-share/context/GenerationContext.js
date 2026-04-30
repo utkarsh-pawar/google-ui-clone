@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext, useState, useRef, useCallback } from 'react';
 import {
-  STYLES, splitScenes, sceneDurationFromText, makeImagePrompt, pollinationsUrl,
+  STYLES, FORMATS, splitScenes, sceneDurationFromText, makeImagePrompt, pollinationsUrl,
   loadImageWithRetry, fetchSceneAudio, renderVideo, sleep
 } from '@/lib/videoUtils';
 
@@ -40,7 +40,7 @@ export function GenerationProvider({ children }) {
     setToasts(t => t.filter(x => x.id !== id));
   }, []);
 
-  const startGeneration = useCallback(async ({ script, style, speedMultiplier, narration, voice }) => {
+  const startGeneration = useCallback(async ({ script, style, format, speedMultiplier, narration, voice }) => {
     abortRef.current = false;
     const rawScenes = splitScenes(script);
     if (!rawScenes.length) return;
@@ -48,10 +48,11 @@ export function GenerationProvider({ children }) {
     const id = Date.now().toString();
     const title = rawScenes[0].slice(0, 60);
     const selectedStyle = STYLES.find(s => s.id === style) || STYLES[0];
+    const selectedFormat = FORMATS.find(f => f.id === format) || FORMATS[0];
     const sceneDurations = rawScenes.map(t => sceneDurationFromText(t, speedMultiplier));
 
     const initial = {
-      id, title, style, speedMultiplier, narration, voice, rawScenes,
+      id, title, style, format, speedMultiplier, narration, voice, rawScenes,
       scenes: rawScenes.map(text => ({ text, image: null, error: false, errorMsg: null })),
       progress: { step: 'Generating images…', current: 0, total: rawScenes.length },
       status: 'generating',
@@ -71,8 +72,8 @@ export function GenerationProvider({ children }) {
       }
       setActive(a => ({ ...a, progress: { step: 'Generating images…', current: i + 1, total: rawScenes.length } }));
 
-      const prompt = makeImagePrompt(rawScenes[i], selectedStyle.suffix);
-      const { img, error } = await loadImageWithRetry(pollinationsUrl(prompt));
+      const prompt = makeImagePrompt(rawScenes[i], selectedStyle.suffix, selectedFormat);
+      const { img, error } = await loadImageWithRetry(pollinationsUrl(prompt, selectedFormat.width, selectedFormat.height));
       scenes[i] = { text: rawScenes[i], image: img, error: !!error, errorMsg: error };
       setActive(a => ({ ...a, scenes: [...scenes] }));
       if (error) addToast(`Scene ${i + 1}: ${error}`);
@@ -101,7 +102,7 @@ export function GenerationProvider({ children }) {
     try {
       const videoUrl = await renderVideo(scenes, sceneDurations, (current, total) => {
         setActive(a => ({ ...a, progress: { step: 'Recording video…', current, total } }));
-      }, audioBuffers);
+      }, audioBuffers, selectedFormat);
 
       const done = { ...initial, scenes, status: 'done', videoUrl, progress: { step: 'Done', current: scenes.length, total: scenes.length } };
       setActive(done);
