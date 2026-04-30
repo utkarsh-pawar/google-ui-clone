@@ -22,6 +22,13 @@ export function splitScenes(script) {
   return script.split(/\n\n+/).map(s => s.trim()).filter(s => s.length > 20);
 }
 
+// Duration scales with word count: ~1.5s for a short phrase, up to 8s for a long paragraph
+export function sceneDurationFromText(text, multiplier = 1) {
+  const words = text.trim().split(/\s+/).length;
+  const base = Math.max(1.5, Math.min(8, 1 + words * 0.15));
+  return Math.round(base * multiplier * 10) / 10;
+}
+
 export function makeImagePrompt(text, styleSuffix) {
   const cleaned = text.replace(/[^\w\s,]/g, ' ').slice(0, 200);
   return `${cleaned}, ${styleSuffix}, 16:9 aspect ratio, high quality`;
@@ -103,8 +110,8 @@ function drawSubtitle(ctx, text) {
   ctx.shadowBlur = 0;
 }
 
-// audioBuffers: array of ArrayBuffer|null, one per scene (empty = no audio)
-export async function renderVideo(scenes, sceneDuration, onProgress, audioBuffers = []) {
+// sceneDurations: number (uniform) or number[] (per-scene). audioBuffers: ArrayBuffer[]|null[]
+export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffers = []) {
   const canvas = document.createElement('canvas');
   canvas.width = VIDEO_WIDTH;
   canvas.height = VIDEO_HEIGHT;
@@ -151,10 +158,11 @@ export async function renderVideo(scenes, sceneDuration, onProgress, audioBuffer
     const scene = scenes[i];
     onProgress(i + 1, scenes.length);
 
-    // Extend scene to fit TTS audio if it's longer than sceneDuration
+    // Per-scene or uniform duration; extend if TTS audio is longer
+    const sceneDuration = Array.isArray(sceneDurations) ? sceneDurations[i] : sceneDurations;
     const audioDuration = decodedAudio[i]?.duration ?? 0;
     const effectiveDuration = Math.max(sceneDuration, audioDuration > 0 ? audioDuration + 0.8 : 0);
-    const HOLD_MS = Math.max(500, effectiveDuration * 1000 - FADE_MS * 2);
+    const HOLD_MS = Math.max(300, effectiveDuration * 1000 - FADE_MS * 2);
 
     const drawFrame = (alpha) => {
       ctx.globalAlpha = 1;

@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext, useState, useRef, useCallback } from 'react';
 import {
-  STYLES, splitScenes, makeImagePrompt, pollinationsUrl,
+  STYLES, splitScenes, sceneDurationFromText, makeImagePrompt, pollinationsUrl,
   loadImageWithRetry, fetchSceneAudio, renderVideo, sleep
 } from '@/lib/videoUtils';
 
@@ -40,7 +40,7 @@ export function GenerationProvider({ children }) {
     setToasts(t => t.filter(x => x.id !== id));
   }, []);
 
-  const startGeneration = useCallback(async ({ script, style, sceneDuration, narration, voice }) => {
+  const startGeneration = useCallback(async ({ script, style, speedMultiplier, narration, voice }) => {
     abortRef.current = false;
     const rawScenes = splitScenes(script);
     if (!rawScenes.length) return;
@@ -48,9 +48,10 @@ export function GenerationProvider({ children }) {
     const id = Date.now().toString();
     const title = rawScenes[0].slice(0, 60);
     const selectedStyle = STYLES.find(s => s.id === style) || STYLES[0];
+    const sceneDurations = rawScenes.map(t => sceneDurationFromText(t, speedMultiplier));
 
     const initial = {
-      id, title, style, sceneDuration, narration, voice, rawScenes,
+      id, title, style, speedMultiplier, narration, voice, rawScenes,
       scenes: rawScenes.map(text => ({ text, image: null, error: false, errorMsg: null })),
       progress: { step: 'Generating images…', current: 0, total: rawScenes.length },
       status: 'generating',
@@ -75,7 +76,7 @@ export function GenerationProvider({ children }) {
       scenes[i] = { text: rawScenes[i], image: img, error: !!error, errorMsg: error };
       setActive(a => ({ ...a, scenes: [...scenes] }));
       if (error) addToast(`Scene ${i + 1}: ${error}`);
-      if (i < rawScenes.length - 1) await sleep(300);
+      if (i < rawScenes.length - 1) await sleep(100);
     }
 
     if (abortRef.current) { setActive(a => ({ ...a, status: 'cancelled' })); return; }
@@ -98,7 +99,7 @@ export function GenerationProvider({ children }) {
     setActive(a => ({ ...a, status: 'recording', progress: { step: 'Recording video…', current: 0, total: scenes.length } }));
 
     try {
-      const videoUrl = await renderVideo(scenes, sceneDuration, (current, total) => {
+      const videoUrl = await renderVideo(scenes, sceneDurations, (current, total) => {
         setActive(a => ({ ...a, progress: { step: 'Recording video…', current, total } }));
       }, audioBuffers);
 
