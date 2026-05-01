@@ -46,14 +46,14 @@ export function GenerationProvider({ children }) {
     if (!rawScenes.length) return;
 
     const id = Date.now().toString();
-    const title = rawScenes[0].slice(0, 60);
+    const title = (rawScenes[0].narration || rawScenes[0].scenePrompt || '').slice(0, 60);
     const selectedStyle = STYLES.find(s => s.id === style) || STYLES[0];
     const selectedFormat = FORMATS.find(f => f.id === format) || FORMATS[0];
-    const sceneDurations = rawScenes.map(t => sceneDurationFromText(t, speedMultiplier));
+    const sceneDurations = rawScenes.map(s => sceneDurationFromText(s.narration || s.scenePrompt, speedMultiplier));
 
     const initial = {
       id, title, style, format, speedMultiplier, narration, voice, rawScenes,
-      scenes: rawScenes.map(text => ({ text, image: null, error: false, errorMsg: null })),
+      scenes: rawScenes.map(s => ({ ...s, image: null, error: false, errorMsg: null })),
       progress: { step: 'Generating images…', current: 0, total: rawScenes.length },
       status: 'generating',
       videoUrl: null,
@@ -67,8 +67,8 @@ export function GenerationProvider({ children }) {
     const scenes = [...initial.scenes];
     let doneCount = 0;
 
-    await processInBatches(rawScenes, async (text, idx) => {
-      const prompt = makeImagePrompt(text, selectedStyle.suffix, selectedFormat);
+    await processInBatches(rawScenes, async (scene, idx) => {
+      const prompt = makeImagePrompt(scene.scenePrompt, selectedStyle.suffix, selectedFormat);
       return loadImage(pollinationsUrl(prompt, selectedFormat.width, selectedFormat.height, idx));
     }, {
       batchSize: 2,
@@ -78,7 +78,7 @@ export function GenerationProvider({ children }) {
       abortRef,
       onItemDone: (idx, img, error) => {
         doneCount++;
-        scenes[idx] = { text: rawScenes[idx], image: img, error: !!error, errorMsg: error };
+        scenes[idx] = { ...rawScenes[idx], image: img, error: !!error, errorMsg: error };
         if (error) addToast(`Scene ${idx + 1}: ${error}`);
         setActive(a => ({
           ...a,
@@ -97,7 +97,7 @@ export function GenerationProvider({ children }) {
       for (let i = 0; i < rawScenes.length; i++) {
         if (abortRef.current) { setActive(a => ({ ...a, status: 'cancelled' })); return; }
         setActive(a => ({ ...a, progress: { step: 'Generating narration…', current: i + 1, total: rawScenes.length } }));
-        const buf = await fetchSceneAudio(rawScenes[i], voice || 'Brian');
+        const buf = await fetchSceneAudio(rawScenes[i].narration || rawScenes[i].scenePrompt, voice || 'Brian');
         audioBuffers.push(buf);
       }
     }
