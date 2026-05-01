@@ -260,7 +260,10 @@ export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffe
     // Per-scene or uniform duration; extend if TTS audio is longer
     const sceneDuration = Array.isArray(sceneDurations) ? sceneDurations[i] : sceneDurations;
     const audioDuration = decodedAudio[i]?.duration ?? 0;
-    const effectiveDuration = Math.max(sceneDuration, audioDuration > 0 ? audioDuration + 0.8 : 0);
+    const effectiveDuration = Math.min(
+      Math.max(sceneDuration, audioDuration > 0 ? audioDuration + 0.8 : 0),
+      15
+    );
     const HOLD_MS = Math.max(300, effectiveDuration * 1000 - FADE_MS * 2);
 
     const fadeFrames = Math.floor((FADE_MS / 1000) * FPS);
