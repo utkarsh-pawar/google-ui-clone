@@ -1,7 +1,8 @@
 'use client';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useGeneration } from '@/context/GenerationContext';
+import { uploadToYouTube, isYouTubeConnected, getFreshToken } from '@/lib/youtubeUtils';
 import styles from './page.module.css';
 
 function VideoPlayer({ src }) {
@@ -19,6 +20,63 @@ function VideoPlayer({ src }) {
     return () => v.removeEventListener('loadedmetadata', fix);
   }, [src]);
   return <video ref={ref} src={src} controls className={styles.video} />;
+}
+
+function UploadButton({ active }) {
+  const [uploading, setUploading] = useState(false);
+  const [uploaded, setUploaded] = useState(null);
+  const [error, setError] = useState(null);
+  const [ytConnected, setYtConnected] = useState(false);
+
+  useEffect(() => { setYtConnected(isYouTubeConnected()); }, []);
+
+  const handleUpload = useCallback(async () => {
+    if (!active?.videoUrl) return;
+    setUploading(true);
+    setError(null);
+    try {
+      // Get the video blob from the blob URL
+      const res = await fetch(active.videoUrl);
+      const videoBlob = await res.blob();
+
+      const { videoId, videoUrl } = await uploadToYouTube({
+        videoBlob,
+        title: active.youtubeTitle || active.titleText || active.title || 'Finance Short',
+        description: active.youtubeDescription || 'Follow for daily finance tips.',
+        tags: active.youtubeTags || ['#personalfinance', '#moneytips', '#shorts'],
+      });
+      setUploaded({ videoId, videoUrl });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploading(false);
+    }
+  }, [active]);
+
+  if (uploaded) {
+    return (
+      <a href={uploaded.videoUrl} target="_blank" rel="noopener noreferrer" className={styles.ytDoneBtn}>
+        ✅ View on YouTube →
+      </a>
+    );
+  }
+
+  if (!ytConnected) {
+    return (
+      <a href="/api/youtube/auth" className={styles.ytConnectBtn}>
+        🔗 Connect YouTube to Upload
+      </a>
+    );
+  }
+
+  return (
+    <div className={styles.uploadRow}>
+      <button className={styles.uploadBtn} onClick={handleUpload} disabled={uploading}>
+        {uploading ? <><span className={styles.spinner} /> Uploading…</> : '▲ Upload to YouTube'}
+      </button>
+      {error && <div className={styles.uploadError}>{error}</div>}
+    </div>
+  );
 }
 
 function ProgressBar({ current, total, step }) {
@@ -44,8 +102,7 @@ function SceneGrid({ scenes }) {
               ? <img src={scene.image.src} alt={`Scene ${i + 1}`} />
               : scene.error
                 ? <div className={styles.imgError}>⚠ Failed</div>
-                : <div className={styles.imgLoading}>Generating…</div>
-            }
+                : <div className={styles.imgLoading}>Generating…</div>}
           </div>
           <div className={styles.sceneText}>
             <span className={styles.sceneNum}>Scene {i + 1}</span>
@@ -78,8 +135,7 @@ function ActiveGeneration({ active, cancelGeneration }) {
     <div className={styles.activeCard}>
       <div className={styles.activeHeader}>
         <div className={styles.activeTitle}>
-          {isGenerating && <span className={styles.spinner} />}
-          {isRecording && <span className={styles.spinner} />}
+          {(isGenerating || isRecording) && <span className={styles.spinner} />}
           {isDone && <span className={styles.statusIcon}>✅</span>}
           {isError && <span className={styles.statusIcon}>❌</span>}
           {isCancelled && <span className={styles.statusIcon}>🚫</span>}
@@ -91,41 +147,37 @@ function ActiveGeneration({ active, cancelGeneration }) {
       </div>
 
       {(isGenerating || isRecording) && (
-        <ProgressBar
-          current={active.progress.current}
-          total={active.progress.total}
-          step={active.progress.step}
-        />
+        <ProgressBar current={active.progress.current} total={active.progress.total} step={active.progress.step} />
       )}
 
       {isRecording && (
         <div className={styles.recordingNote}>Recording video — keep this tab open until complete</div>
       )}
 
-      {isError && (
-        <div className={styles.errorBox}>⚠ {active.error}</div>
-      )}
-
-      {isCancelled && (
-        <div className={styles.cancelledBox}>Generation was cancelled.</div>
-      )}
+      {isError && <div className={styles.errorBox}>⚠ {active.error}</div>}
+      {isCancelled && <div className={styles.cancelledBox}>Generation was cancelled.</div>}
 
       {isDone && active.videoUrl && (
         <div className={styles.doneActions}>
           <VideoPlayer src={active.videoUrl} />
-          <a
-            href={active.videoUrl}
-            download={`${active.title || 'video'}.webm`}
-            className={styles.downloadBtn}
-          >
-            ⬇ Download Video
-          </a>
+          <div className={styles.doneButtons}>
+            <a href={active.videoUrl} download={`${active.title || 'video'}.webm`} className={styles.downloadBtn}>
+              ⬇ Download
+            </a>
+            <UploadButton active={active} />
+          </div>
+          {active.youtubeTitle && (
+            <div className={styles.ytMetaPreview}>
+              <div className={styles.ytMetaRow}><strong>Title:</strong> {active.youtubeTitle}</div>
+              {active.youtubeTags?.length > 0 && (
+                <div className={styles.ytMetaRow}><strong>Tags:</strong> {active.youtubeTags.slice(0, 5).join(' ')}</div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
-      {active.scenes?.length > 0 && (
-        <SceneGrid scenes={active.scenes} />
-      )}
+      {active.scenes?.length > 0 && <SceneGrid scenes={active.scenes} />}
     </div>
   );
 }
@@ -148,7 +200,6 @@ function HistoryItem({ item }) {
 
 export default function GenerationsPage() {
   const { active, history, toasts, dismissToast, cancelGeneration } = useGeneration();
-
   const hasActive = active && active.status !== null;
   const historyItems = history.filter(h => h.id !== active?.id);
 
@@ -163,7 +214,7 @@ export default function GenerationsPage() {
             <div className={styles.subtitle}>Live progress & history</div>
           </div>
         </div>
-        <Link href="/" className={styles.homeLink}>Home →</Link>
+        <Link href="/video-creator/scheduler" className={styles.homeLink}>Scheduler →</Link>
       </header>
 
       <div className={styles.body}>
@@ -173,9 +224,7 @@ export default function GenerationsPage() {
           <div className={styles.empty}>
             <div className={styles.emptyIcon}>🎬</div>
             <div className={styles.emptyTitle}>No active generation</div>
-            <div className={styles.emptySub}>
-              <Link href="/video-creator" className={styles.emptyLink}>Create a new video →</Link>
-            </div>
+            <Link href="/video-creator" className={styles.emptyLink}>Create a new video →</Link>
           </div>
         )}
 
@@ -183,9 +232,7 @@ export default function GenerationsPage() {
           <div className={styles.historySection}>
             <div className={styles.sectionTitle}>Previous Generations</div>
             <div className={styles.historyList}>
-              {historyItems.map(item => (
-                <HistoryItem key={item.id} item={item} />
-              ))}
+              {historyItems.map(item => <HistoryItem key={item.id} item={item} />)}
             </div>
           </div>
         )}

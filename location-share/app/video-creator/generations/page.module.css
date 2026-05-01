@@ -341,3 +341,74 @@
   flex-shrink: 0;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Done buttons row */
+.doneButtons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Upload to YouTube button */
+.uploadRow { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.uploadBtn {
+  background: #ff0000;
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.uploadBtn:hover:not(:disabled) { opacity: 0.85; }
+.uploadBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.uploadError { font-size: 12px; color: var(--red); }
+
+.ytConnectBtn {
+  display: inline-block;
+  background: transparent;
+  border: 1px solid #ff0000;
+  color: #ff0000;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  transition: all 0.15s;
+  flex: 1;
+}
+.ytConnectBtn:hover { background: rgba(255,0,0,0.08); }
+
+.ytDoneBtn {
+  display: inline-block;
+  background: rgba(34,197,94,0.15);
+  border: 1px solid var(--green);
+  color: var(--green);
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  text-align: center;
+  flex: 1;
+}
+
+.ytMetaPreview {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ytMetaRow { font-size: 12px; color: var(--muted); }
