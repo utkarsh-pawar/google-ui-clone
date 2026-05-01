@@ -40,7 +40,7 @@ export function GenerationProvider({ children }) {
     setToasts(t => t.filter(x => x.id !== id));
   }, []);
 
-  const startGeneration = useCallback(async ({ script, style, format, speedMultiplier, narration, voice }) => {
+  const startGeneration = useCallback(async ({ script, style, format, speedMultiplier, narration, voice, titleText }) => {
     abortRef.current = false;
     const rawScenes = splitScenes(script);
     if (!rawScenes.length) return;
@@ -110,7 +110,7 @@ export function GenerationProvider({ children }) {
     try {
       const videoUrl = await renderVideo(scenes, sceneDurations, (current, total) => {
         setActive(a => ({ ...a, progress: { step: 'Recording video…', current, total } }));
-      }, audioBuffers, selectedFormat);
+      }, audioBuffers, selectedFormat, titleText || '');
 
       const done = { ...initial, scenes, status: 'done', videoUrl, progress: { step: 'Done', current: scenes.length, total: scenes.length } };
       setActive(done);

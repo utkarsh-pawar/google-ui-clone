@@ -10,6 +10,7 @@ export default function VideoCreator() {
   const router = useRouter();
   const { startGeneration, active } = useGeneration();
   const [script, setScript] = useState('');
+  const [titleText, setTitleText] = useState('');
   const [style, setStyle] = useState(STYLES[0].id);
   const [format, setFormat] = useState(FORMATS[0].id);
   const [speedMultiplier, setSpeedMultiplier] = useState(1);
@@ -21,7 +22,7 @@ export default function VideoCreator() {
 
   const handleGenerate = () => {
     if (!sceneList.length) return;
-    startGeneration({ script, style, format, speedMultiplier, narration, voice });
+    startGeneration({ script, style, format, speedMultiplier, narration, voice, titleText });
     router.push('/video-creator/generations');
   };
 
@@ -44,6 +45,14 @@ export default function VideoCreator() {
       <div className={styles.formBody}>
         <div className={styles.formCard}>
           <div className={styles.sectionTitle}>Your Script</div>
+          <input
+            type="text"
+            className={styles.titleInput}
+            placeholder="Video title — shown at top of first scene (optional)"
+            value={titleText}
+            onChange={e => setTitleText(e.target.value)}
+            maxLength={80}
+          />
           <textarea
             className={styles.textarea}
             placeholder={`Write your script using S- for scene image and N- for narration.\n\nExample:\nS- A vast galaxy with swirling stars and a glowing black hole at its center\nN- Black holes are regions where gravity is so strong, nothing can escape.\n\nS- A massive star collapsing in a brilliant supernova explosion\nN- They form when massive stars reach the end of their life cycle.`}
