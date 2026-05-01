@@ -1,7 +1,25 @@
 'use client';
+import { useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useGeneration } from '@/context/GenerationContext';
 import styles from './page.module.css';
+
+function VideoPlayer({ src }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    const fix = () => {
+      if (v.duration === Infinity) {
+        v.currentTime = 1e101;
+        v.addEventListener('seeked', () => { v.currentTime = 0; }, { once: true });
+      }
+    };
+    v.addEventListener('loadedmetadata', fix, { once: true });
+    return () => v.removeEventListener('loadedmetadata', fix);
+  }, [src]);
+  return <video ref={ref} src={src} controls className={styles.video} />;
+}
 
 function ProgressBar({ current, total, step }) {
   const pct = total > 0 ? Math.round((current / total) * 100) : 0;
@@ -94,7 +112,7 @@ function ActiveGeneration({ active, cancelGeneration }) {
 
       {isDone && active.videoUrl && (
         <div className={styles.doneActions}>
-          <video src={active.videoUrl} controls className={styles.video} />
+          <VideoPlayer src={active.videoUrl} />
           <a
             href={active.videoUrl}
             download={`${active.title || 'video'}.webm`}
