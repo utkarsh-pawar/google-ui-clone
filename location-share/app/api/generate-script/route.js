@@ -46,11 +46,7 @@ Return JSON only:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.9,
-            maxOutputTokens: 1500,
-            responseMimeType: 'application/json',
-          },
+          generationConfig: { temperature: 0.9, maxOutputTokens: 1500 },
         }),
         signal: AbortSignal.timeout(25000),
       }
@@ -63,7 +59,8 @@ Return JSON only:
 
     const data = await res.json();
     const raw = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-    const json = JSON.parse(raw);
+    const cleaned = raw.replace(/^```json?\s*/i, '').replace(/```\s*$/i, '').trim();
+    const json = JSON.parse(cleaned);
     return Response.json(json);
   } catch (err) {
     return Response.json({ error: err.message }, { status: 500 });
