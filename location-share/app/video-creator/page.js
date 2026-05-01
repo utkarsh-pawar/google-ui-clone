@@ -39,17 +39,26 @@ export default function VideoCreator() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setScript(data.script || '');
-      setTitleText(data.suggestedTitle || '');
-      setYoutubeTitle(data.youtubeTitle || '');
-      setYoutubeDescription(data.description || '');
-      setYoutubeTags(data.tags || []);
+
+      // Immediately kick off full pipeline — no second click needed
+      startGeneration({
+        script: data.script || '',
+        style,
+        format,
+        speedMultiplier,
+        narration,
+        voice,
+        titleText: data.suggestedTitle || '',
+        youtubeTitle: data.youtubeTitle || '',
+        youtubeDescription: data.description || '',
+        youtubeTags: data.tags || [],
+      });
+      router.push('/video-creator/generations');
     } catch (err) {
       alert(`Script generation failed: ${err.message}`);
-    } finally {
       setGenerating(false);
     }
-  }, [selectedTopic]);
+  }, [selectedTopic, style, format, speedMultiplier, narration, voice, startGeneration, router]);
 
   const handleGenerate = () => {
     if (!sceneList.length) return;
@@ -79,7 +88,7 @@ export default function VideoCreator() {
           <div className={styles.autoPanelHeader}>
             <div>
               <div className={styles.autoPanelTitle}>⚡ Auto-Generate Script</div>
-              <div className={styles.autoPanelSub}>AI picks a viral finance topic and writes the full script</div>
+              <div className={styles.autoPanelSub}>Pick a topic → one click → video starts generating automatically</div>
             </div>
             <Link href="/video-creator/scheduler" className={styles.scheduleLink}>View Schedule →</Link>
           </div>
@@ -95,7 +104,7 @@ export default function VideoCreator() {
               ))}
             </select>
             <button className={styles.autoBtn} onClick={handleAutoGenerate} disabled={generating}>
-              {generating ? <><span className={styles.btnSpinner} /> Generating…</> : '🤖 Generate Script'}
+              {generating ? <><span className={styles.btnSpinner} /> Generating script…</> : '⚡ Auto Generate & Start'}
             </button>
           </div>
 
