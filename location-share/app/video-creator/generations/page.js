@@ -31,7 +31,14 @@ function SceneGrid({ scenes }) {
           </div>
           <div className={styles.sceneText}>
             <span className={styles.sceneNum}>Scene {i + 1}</span>
-            <p>{scene.text.slice(0, 100)}{scene.text.length > 100 ? '…' : ''}</p>
+            {scene.narration && (
+              <p>{scene.narration.slice(0, 100)}{scene.narration.length > 100 ? '…' : ''}</p>
+            )}
+            {scene.scenePrompt && scene.scenePrompt !== scene.narration && (
+              <p style={{ color: 'var(--dim)', fontSize: '10px', marginTop: '2px' }}>
+                🖼 {scene.scenePrompt.slice(0, 80)}{scene.scenePrompt.length > 80 ? '…' : ''}
+              </p>
+            )}
             {scene.error && scene.errorMsg && (
               <p className={styles.sceneError}>{scene.errorMsg}</p>
             )}

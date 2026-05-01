@@ -17,7 +17,7 @@ export default function VideoCreator() {
   const [voice, setVoice] = useState(TTS_VOICES[0].id);
 
   const sceneList = splitScenes(script);
-  const estimatedDuration = Math.round(sceneList.reduce((s, t) => s + sceneDurationFromText(t, speedMultiplier), 0));
+  const estimatedDuration = Math.round(sceneList.reduce((s, scene) => s + sceneDurationFromText(scene.narration || scene.scenePrompt, speedMultiplier), 0));
 
   const handleGenerate = () => {
     if (!sceneList.length) return;
@@ -46,7 +46,7 @@ export default function VideoCreator() {
           <div className={styles.sectionTitle}>Your Script</div>
           <textarea
             className={styles.textarea}
-            placeholder={`Paste your YouTube script here. Each paragraph becomes one scene.\n\nExample:\nBlack holes are regions of spacetime where gravity is so strong that nothing can escape.\n\nThey form when massive stars collapse at the end of their life cycle.`}
+            placeholder={`Write your script using S- for scene image and N- for narration.\n\nExample:\nS- A vast galaxy with swirling stars and a glowing black hole at its center\nN- Black holes are regions where gravity is so strong, nothing can escape.\n\nS- A massive star collapsing in a brilliant supernova explosion\nN- They form when massive stars reach the end of their life cycle.`}
             value={script}
             onChange={e => setScript(e.target.value)}
           />

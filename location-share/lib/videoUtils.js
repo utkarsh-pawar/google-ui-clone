@@ -24,7 +24,35 @@ export const TTS_VOICES = [
 ];
 
 export function splitScenes(script) {
-  return script.split(/\n\n+/).map(s => s.trim()).filter(s => s.length > 2);
+  const hasFormat = /^[SsNn]-/m.test(script);
+
+  if (!hasFormat) {
+    // Backward compatible: each paragraph is both scene prompt and narration
+    return script
+      .split(/\n\n+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 2)
+      .map(text => ({ scenePrompt: text, narration: text }));
+  }
+
+  // S- line = image generation prompt, N- line = TTS narration + subtitle
+  const scenes = [];
+  let scenePrompt = '';
+  let narration = '';
+
+  for (const line of script.split('\n')) {
+    const t = line.trim();
+    if (/^[Ss]-\s*/i.test(t)) {
+      if (scenePrompt) scenes.push({ scenePrompt, narration: narration || scenePrompt });
+      scenePrompt = t.replace(/^[Ss]-\s*/i, '').trim();
+      narration = '';
+    } else if (/^[Nn]-\s*/i.test(t)) {
+      narration = t.replace(/^[Nn]-\s*/i, '').trim();
+    }
+  }
+  if (scenePrompt) scenes.push({ scenePrompt, narration: narration || scenePrompt });
+
+  return scenes.filter(s => s.scenePrompt.length > 0);
 }
 
 // Duration scales with word count: ~1.5s for a short phrase, up to 8s for a long paragraph
@@ -269,7 +297,7 @@ export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffe
       ctx.fillRect(0, 0, W, H);
       ctx.globalAlpha = 1;
 
-      drawSubtitle(ctx, scene.text, W, H);
+      drawSubtitle(ctx, scene.narration || scene.text || '', W, H);
       sceneFrame++;
     };
 
