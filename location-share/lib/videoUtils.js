@@ -24,7 +24,7 @@ export const TTS_VOICES = [
 ];
 
 export function splitScenes(script) {
-  return script.split(/\n\n+/).map(s => s.trim()).filter(s => s.length > 20);
+  return script.split(/\n\n+/).map(s => s.trim()).filter(s => s.length > 2);
 }
 
 // Duration scales with word count: ~1.5s for a short phrase, up to 8s for a long paragraph
@@ -214,6 +214,17 @@ export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffe
 
   const FADE_MS = 400;
 
+  // Ken Burns effects: [startScale, endScale, startTX, endTX, startTY, endTY]
+  // TX/TY are fractions of W/H — kept within zoom margin so no empty edges show
+  const KB_EFFECTS = [
+    [1.00, 1.08,  0,     0,     0,     0    ], // zoom in
+    [1.08, 1.00,  0,     0,     0,     0    ], // zoom out
+    [1.06, 1.06,  0.02, -0.02,  0,     0    ], // pan left
+    [1.06, 1.06, -0.02,  0.02,  0,     0    ], // pan right
+    [1.06, 1.08,  0.01, -0.01,  0.01, -0.01 ], // zoom in + drift up-left
+    [1.08, 1.05, -0.01,  0.01, -0.01,  0.01 ], // zoom out + drift down-right
+  ];
+
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i];
     onProgress(i + 1, scenes.length);
@@ -224,18 +235,43 @@ export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffe
     const effectiveDuration = Math.max(sceneDuration, audioDuration > 0 ? audioDuration + 0.8 : 0);
     const HOLD_MS = Math.max(300, effectiveDuration * 1000 - FADE_MS * 2);
 
+    const fadeFrames = Math.floor((FADE_MS / 1000) * FPS);
+    const holdFrames = Math.floor((HOLD_MS / 1000) * FPS);
+    const totalFrames = (fadeFrames + 1) * 2 + holdFrames;
+    const [s0, s1, x0, x1, y0, y1] = KB_EFFECTS[i % KB_EFFECTS.length];
+    let sceneFrame = 0;
+
     const drawFrame = (alpha) => {
-      ctx.globalAlpha = 1;
-      if (scene.image) ctx.drawImage(scene.image, 0, 0, W, H);
-      else { ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, W, H); }
+      // Ease in-out progress for smooth Ken Burns motion
+      const p = totalFrames > 1 ? sceneFrame / (totalFrames - 1) : 0;
+      const t = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
+      const scale = s0 + (s1 - s0) * t;
+      const tx = (x0 + (x1 - x0) * t) * W;
+      const ty = (y0 + (y1 - y0) * t) * H;
+
+      ctx.clearRect(0, 0, W, H);
+
+      if (scene.image) {
+        ctx.save();
+        ctx.translate(W / 2 + tx, H / 2 + ty);
+        ctx.scale(scale, scale);
+        ctx.translate(-W / 2, -H / 2);
+        ctx.drawImage(scene.image, 0, 0, W, H);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      // Black fade overlay
       ctx.globalAlpha = 1 - alpha;
       ctx.fillStyle = '#000';
       ctx.fillRect(0, 0, W, H);
       ctx.globalAlpha = 1;
-      drawSubtitle(ctx, scene.text, W, H);
-    };
 
-    const fadeFrames = Math.floor((FADE_MS / 1000) * FPS);
+      drawSubtitle(ctx, scene.text, W, H);
+      sceneFrame++;
+    };
 
     // Start TTS audio after fade-in completes
     if (audioCtx && decodedAudio[i]) {
@@ -246,7 +282,6 @@ export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffe
     }
 
     for (let f = 0; f <= fadeFrames; f++) { drawFrame(f / fadeFrames); await sleep(1000 / FPS); }
-    const holdFrames = Math.floor((HOLD_MS / 1000) * FPS);
     for (let f = 0; f < holdFrames; f++) { drawFrame(1); await sleep(1000 / FPS); }
     for (let f = fadeFrames; f >= 0; f--) { drawFrame(f / fadeFrames); await sleep(1000 / FPS); }
   }
