@@ -1,8 +1,6 @@
-import Anthropic from '@anthropic-ai/sdk';
-
 export const maxDuration = 30;
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const GEMINI_MODEL = 'gemini-2.0-flash-lite';
 
 const SYSTEM_PROMPT = `You are a viral YouTube Shorts scriptwriter for a finance channel targeting young Indians aged 18-30.
 
@@ -23,7 +21,12 @@ export async function POST(request) {
   const { topic, angle } = await request.json();
   if (!topic) return Response.json({ error: 'Missing topic' }, { status: 400 });
 
-  const userPrompt = `Create a viral YouTube Shorts script about: "${topic}"
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return Response.json({ error: 'GEMINI_API_KEY not set' }, { status: 500 });
+
+  const prompt = `${SYSTEM_PROMPT}
+
+Create a viral YouTube Shorts script about: "${topic}"
 Angle: ${angle || 'motivational'}
 
 Return JSON:
@@ -32,19 +35,32 @@ Return JSON:
   "suggestedTitle": "Bold 6-8 word hook title for video overlay",
   "youtubeTitle": "Viral YouTube title under 60 chars with emoji",
   "description": "3-line YouTube description with hook, value, and CTA. Include relevant hashtags at end.",
-  "tags": ["#personalfinance", "#moneytips", ...8 more relevant tags]
+  "tags": ["#personalfinance", "#moneytips", "#shorts", "#financetips", "#moneyadvice", "#wealthbuilding", "#indianfinance", "#financialfreedom", "#moneymindset", "#investing"]
 }`;
 
   try {
-    const msg = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1500,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userPrompt }],
-    });
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.9, maxOutputTokens: 1500 },
+        }),
+        signal: AbortSignal.timeout(25000),
+      }
+    );
 
-    const raw = msg.content[0].text.trim();
-    const json = JSON.parse(raw.startsWith('```') ? raw.replace(/```json?\n?/g, '').replace(/```$/g, '') : raw);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `Gemini ${res.status}`);
+    }
+
+    const data = await res.json();
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+    const cleaned = raw.startsWith('```') ? raw.replace(/```json?\n?/g, '').replace(/```\s*$/g, '') : raw;
+    const json = JSON.parse(cleaned);
     return Response.json(json);
   } catch (err) {
     return Response.json({ error: err.message }, { status: 500 });
