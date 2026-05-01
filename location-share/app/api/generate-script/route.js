@@ -1,7 +1,5 @@
 export const maxDuration = 30;
 
-const GEMINI_MODEL = 'gemini-2.0-flash-lite';
-
 const SYSTEM_PROMPT = `You are a viral YouTube Shorts scriptwriter for a finance channel targeting young Indians aged 18-30.
 
 Your scripts must:
@@ -21,15 +19,13 @@ export async function POST(request) {
   const { topic, angle } = await request.json();
   if (!topic) return Response.json({ error: 'Missing topic' }, { status: 400 });
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return Response.json({ error: 'GEMINI_API_KEY not set' }, { status: 500 });
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) return Response.json({ error: 'GROQ_API_KEY not set in environment' }, { status: 500 });
 
-  const prompt = `${SYSTEM_PROMPT}
-
-Create a viral YouTube Shorts script about: "${topic}"
+  const userPrompt = `Create a viral YouTube Shorts script about: "${topic}"
 Angle: ${angle || 'motivational'}
 
-Return JSON:
+Return JSON only:
 {
   "script": "S- [vivid image prompt]\\nN- [short punchy narration]\\n\\nS- ...\\nN- ...",
   "suggestedTitle": "Bold 6-8 word hook title for video overlay",
@@ -39,28 +35,33 @@ Return JSON:
 }`;
 
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.9, maxOutputTokens: 1500 },
-        }),
-        signal: AbortSignal.timeout(25000),
-      }
-    );
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: userPrompt },
+        ],
+        max_tokens: 1500,
+        temperature: 0.9,
+        response_format: { type: 'json_object' },
+      }),
+      signal: AbortSignal.timeout(25000),
+    });
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err?.error?.message || `Gemini ${res.status}`);
+      throw new Error(err?.error?.message || `Groq ${res.status}`);
     }
 
     const data = await res.json();
-    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-    const cleaned = raw.startsWith('```') ? raw.replace(/```json?\n?/g, '').replace(/```\s*$/g, '') : raw;
-    const json = JSON.parse(cleaned);
+    const raw = data.choices?.[0]?.message?.content?.trim() || '';
+    const json = JSON.parse(raw);
     return Response.json(json);
   } catch (err) {
     return Response.json({ error: err.message }, { status: 500 });
