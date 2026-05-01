@@ -108,6 +108,22 @@
   margin-bottom: 4px;
 }
 
+.titleInput {
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.15s;
+  margin-bottom: 10px;
+}
+.titleInput:focus { border-color: var(--accent); }
+.titleInput::placeholder { color: var(--dim); font-weight: 400; }
+
 .textarea {
   width: 100%;
   min-height: 200px;

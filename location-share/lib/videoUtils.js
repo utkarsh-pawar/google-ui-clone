@@ -194,8 +194,43 @@ function drawSubtitle(ctx, text, W, H) {
   ctx.shadowBlur = 0;
 }
 
+function drawTitle(ctx, text, W, H) {
+  if (!text) return;
+  const fontSize = W < 900 ? 46 : 40;
+  const padding = 48;
+  const maxWidth = W - padding * 2;
+  const lineHeight = fontSize * 1.35;
+
+  ctx.font = `800 ${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
+  ctx.textAlign = 'center';
+
+  const words = text.split(' ');
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word;
+    if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = word; }
+    else line = test;
+  }
+  if (line) lines.push(line);
+  const display = lines.slice(0, 2);
+
+  const totalH = display.length * lineHeight + 20;
+  const y = 28;
+
+  ctx.globalAlpha = 0.72;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, totalH + y + 8);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#fff';
+  ctx.shadowColor = 'rgba(0,0,0,0.9)';
+  ctx.shadowBlur = 10;
+  display.forEach((l, idx) => ctx.fillText(l, W / 2, y + fontSize + idx * lineHeight));
+  ctx.shadowBlur = 0;
+}
+
 // sceneDurations: number (uniform) or number[] (per-scene). audioBuffers: ArrayBuffer[]|null[]
-export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffers = [], format = FORMATS[0]) {
+export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffers = [], format = FORMATS[0], scriptTitle = '') {
   const W = format.width;
   const H = format.height;
   const canvas = document.createElement('canvas');
@@ -301,6 +336,7 @@ export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffe
       ctx.globalAlpha = 1;
 
       drawSubtitle(ctx, scene.narration || scene.text || '', W, H);
+      if (i === 0 && scriptTitle) drawTitle(ctx, scriptTitle, W, H);
       sceneFrame++;
     };
 
