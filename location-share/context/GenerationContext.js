@@ -40,7 +40,7 @@ export function GenerationProvider({ children }) {
     setToasts(t => t.filter(x => x.id !== id));
   }, []);
 
-  const startGeneration = useCallback(async ({ script, style, format, speedMultiplier, narration, voice, titleText }) => {
+  const startGeneration = useCallback(async ({ script, style, format, speedMultiplier, narration, voice, titleText, youtubeTitle, youtubeDescription, youtubeTags }) => {
     abortRef.current = false;
     const rawScenes = splitScenes(script);
     if (!rawScenes.length) return;
@@ -52,7 +52,7 @@ export function GenerationProvider({ children }) {
     const sceneDurations = rawScenes.map(s => sceneDurationFromText(s.narration || s.scenePrompt, speedMultiplier));
 
     const initial = {
-      id, title, style, format, speedMultiplier, narration, voice, rawScenes,
+      id, title, style, format, speedMultiplier, narration, voice, titleText, rawScenes,
       scenes: rawScenes.map(s => ({ ...s, image: null, error: false, errorMsg: null })),
       progress: { step: 'Generating images…', current: 0, total: rawScenes.length },
       status: 'generating',
@@ -112,7 +112,7 @@ export function GenerationProvider({ children }) {
         setActive(a => ({ ...a, progress: { step: 'Recording video…', current, total } }));
       }, audioBuffers, selectedFormat, titleText || '');
 
-      const done = { ...initial, scenes, status: 'done', videoUrl, progress: { step: 'Done', current: scenes.length, total: scenes.length } };
+      const done = { ...initial, scenes, status: 'done', videoUrl, youtubeTitle, youtubeDescription, youtubeTags, progress: { step: 'Done', current: scenes.length, total: scenes.length } };
       setActive(done);
 
       setHistory(h => {
