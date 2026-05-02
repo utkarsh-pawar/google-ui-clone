@@ -1,6 +1,7 @@
 export async function GET(request) {
   const base = new URL(request.url);
-  const redirectUri = `${base.protocol}//${base.host}/api/youtube/callback`;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || `${base.protocol}//${base.host}`;
+  const redirectUri = `${appUrl}/api/youtube/callback`;
 
   const params = new URLSearchParams({
     client_id: process.env.YOUTUBE_CLIENT_ID || '',

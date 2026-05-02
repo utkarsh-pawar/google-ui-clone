@@ -8,7 +8,8 @@ export async function GET(request) {
       { headers: { 'Content-Type': 'text/html' } });
   }
 
-  const redirectUri = `${protocol}//${host}/api/youtube/callback`;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}//${host}`;
+  const redirectUri = `${appUrl}/api/youtube/callback`;
 
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -28,7 +29,6 @@ export async function GET(request) {
       { headers: { 'Content-Type': 'text/html' } });
   }
 
-  // Store tokens client-side via script, then redirect to scheduler
   const html = `<!DOCTYPE html>
 <html>
 <head><title>Connected!</title>
