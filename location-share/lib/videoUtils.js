@@ -292,12 +292,13 @@ export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffe
     const scene = scenes[i];
     onProgress(i + 1, scenes.length);
 
-    // Per-scene or uniform duration; extend if TTS audio is longer but never hold too long
+    // Audio-driven timing: scene lasts exactly as long as its narration + tiny breath gap.
+    // If no audio, fall back to word-count estimate. Hard cap at 8s catches runaway scenes.
     const sceneDuration = Array.isArray(sceneDurations) ? sceneDurations[i] : sceneDurations;
     const audioDuration = decodedAudio[i]?.duration ?? 0;
     const effectiveDuration = Math.min(
-      Math.max(sceneDuration, audioDuration > 0 ? audioDuration + 0.5 : 0),
-      8  // 8s max per scene — length comes from scene count, not long holds
+      audioDuration > 0 ? audioDuration + 0.3 : sceneDuration,
+      8
     );
     const HOLD_MS = Math.max(300, effectiveDuration * 1000 - FADE_MS * 2);
 
