@@ -75,26 +75,25 @@ export async function uploadToYouTube({ videoBlob, title, description, tags = []
 
   // Shorts: hashtags in title = more algorithmic reach. Regular: clean title, full tags array.
   const cleanTags = tags.map(t => t.replace(/^#/, ''));
-  let finalTitle, finalTags;
+  let finalTitle, finalTags, finalDescription;
 
   if (isShorts) {
-    const shortsHashtags = ['#Shorts', '#YouTubeShorts'];
-    const topicHashtags = tags
-      .filter(t => !['#shorts', '#youtubeshorts'].includes(t.toLowerCase()))
-      .slice(0, 4);
-    const hashtagSuffix = ' ' + [...shortsHashtags, ...topicHashtags].join(' ');
-    const baseTitle = title.slice(0, 100 - hashtagSuffix.length);
-    finalTitle = baseTitle + hashtagSuffix;
+    // Only #Shorts in title (9 chars) — that's all YouTube needs for Shorts feed discovery
+    // All other hashtags go in the description where they also count for reach
+    finalTitle = title.slice(0, 91) + ' #Shorts';
+    const hashtagBlock = [...new Set(['#Shorts', '#YouTubeShorts', ...tags])].join(' ');
+    finalDescription = description + '\n\n' + hashtagBlock;
     finalTags = [...new Set(['Shorts', 'YouTubeShorts', ...cleanTags])].slice(0, 15);
   } else {
     finalTitle = title.slice(0, 100);
+    finalDescription = description;
     finalTags = [...new Set(cleanTags)].slice(0, 15);
   }
 
   const metadata = {
     snippet: {
       title: finalTitle,
-      description,
+      description: finalDescription,
       tags: finalTags,
       categoryId: '27',
       defaultLanguage: 'en',
