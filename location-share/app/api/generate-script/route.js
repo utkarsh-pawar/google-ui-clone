@@ -53,7 +53,7 @@ const GENRE_INSTRUCTIONS = {
 };
 
 export async function POST(request) {
-  const { topic, angle, genre = 'finance', format = 'portrait' } = await request.json();
+  const { topic, angle, genre = 'finance', format = 'portrait', language = 'en' } = await request.json();
   if (!topic) return Response.json({ error: 'Missing topic' }, { status: 400 });
 
   const apiKey = process.env.CEREBRAS_API_KEY;
@@ -76,11 +76,20 @@ export async function POST(request) {
 
   const genreNote = GENRE_INSTRUCTIONS[genre] || GENRE_INSTRUCTIONS.finance;
 
+  const langNote = language === 'hi'
+    ? `Language: HINDI (हिंदी)
+- Write ALL N- lines in Hindi (Devanagari script). Example: "उसके पास सिर्फ ₹3,000 बचे थे।"
+- Write S- lines in English (for image generation — English works better for AI image models).
+- Titles, description, and tags should also be in Hindi with some English hashtags.
+- Use conversational Hindi that young Indians actually speak — mix Hindi + some English words naturally (Hinglish is fine for N- lines).`
+    : `Language: English`;
+
   const systemPrompt = `${BASE_SYSTEM}\n\n${genreNote}`;
 
   const userPrompt = `Create a viral YouTube script about: "${topic}"
 Angle: ${angle || 'motivational'}
 ${formatNote}
+${langNote}
 
 Return JSON only:
 {

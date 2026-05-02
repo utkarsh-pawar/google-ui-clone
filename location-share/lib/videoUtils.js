@@ -233,9 +233,9 @@ export async function processInBatches(items, processor, {
   return results;
 }
 
-export async function fetchSceneAudio(text, voice = 'Brian') {
+export async function fetchSceneAudio(text, voice = 'Brian', lang = 'en') {
   try {
-    const res = await fetch(`/api/tts?voice=${voice}&text=${encodeURIComponent(text.slice(0, 400))}`);
+    const res = await fetch(`/api/tts?voice=${voice}&lang=${lang}&text=${encodeURIComponent(text.slice(0, 400))}`);
     if (!res.ok) return null;
     return await res.arrayBuffer();
   } catch {
@@ -250,7 +250,7 @@ function drawSubtitle(ctx, text, W, H, progress = 1) {
   const maxWidth = W - padding * 2;
   const lineHeight = fontSize * 1.5;
 
-  ctx.font = `600 ${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
+  ctx.font = `600 ${fontSize}px 'Noto Sans Devanagari', 'Mangal', -apple-system, BlinkMacSystemFont, sans-serif`;
   ctx.textAlign = 'center';
 
   const words = text.split(' ');

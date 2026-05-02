@@ -14,6 +14,7 @@ export default function VideoCreator() {
   // Auto-generate state
   const [genre, setGenre] = useState('motivation');
   const [format, setFormat] = useState('portrait');
+  const [language, setLanguage] = useState('en');
   const [selectedTopic, setSelectedTopic] = useState(() => getTodaysTopic());
   const [generating, setGenerating] = useState(false);
   const [pendingScript, setPendingScript] = useState(null);
@@ -52,7 +53,7 @@ export default function VideoCreator() {
       const res = await fetch('/api/generate-script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: selectedTopic.topic, angle: selectedTopic.angle, genre, format }),
+        body: JSON.stringify({ topic: selectedTopic.topic, angle: selectedTopic.angle, genre, format, language }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -70,6 +71,7 @@ export default function VideoCreator() {
       script: pendingScript.script || '',
       style,
       format,
+      language,
       speedMultiplier,
       narration,
       voice,
@@ -79,11 +81,11 @@ export default function VideoCreator() {
       youtubeTags: pendingScript.tags || [],
     });
     router.push('/video-creator/generations');
-  }, [pendingScript, style, format, speedMultiplier, narration, voice, startGeneration, router]);
+  }, [pendingScript, style, format, language, speedMultiplier, narration, voice, startGeneration, router]);
 
   const handleGenerate = () => {
     if (!sceneList.length) return;
-    startGeneration({ script, style, format, speedMultiplier, narration, voice, titleText, youtubeTitle, youtubeDescription, youtubeTags });
+    startGeneration({ script, style, format, language, speedMultiplier, narration, voice, titleText, youtubeTitle, youtubeDescription, youtubeTags });
     router.push('/video-creator/generations');
   };
 
@@ -138,6 +140,22 @@ export default function VideoCreator() {
                 >
                   {f.icon} {f.label}
                   <span className={styles.formatHint}>{f.hint}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Language */}
+          <div className={styles.autoSection}>
+            <div className={styles.autoLabel}>Language</div>
+            <div className={styles.formatToggle}>
+              {[{ id: 'en', label: '🇬🇧 English' }, { id: 'hi', label: '🇮🇳 Hindi' }].map(l => (
+                <button
+                  key={l.id}
+                  className={`${styles.formatToggleBtn} ${language === l.id ? styles.formatToggleBtnActive : ''}`}
+                  onClick={() => { setLanguage(l.id); setPendingScript(null); setTitleOptions(null); }}
+                >
+                  {l.label}
                 </button>
               ))}
             </div>

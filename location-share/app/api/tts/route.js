@@ -17,7 +17,7 @@ async function fetchGoogleTTS(text, lang = 'en') {
   return buf;
 }
 
-// StreamElements — fallback
+// StreamElements — English-only fallback
 const SE_VOICES = new Set(['Brian','Amy','Emma','Joanna','Joey','Justin','Kendra','Kimberly','Matthew','Salli','Nicole','Russell','Geraint']);
 async function fetchStreamElements(text, voice = 'Brian') {
   const v = SE_VOICES.has(voice) ? voice : 'Brian';
@@ -33,19 +33,26 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const text  = (searchParams.get('text')  || '').slice(0, 500).trim();
   const voice = searchParams.get('voice') || 'Brian';
+  const lang  = searchParams.get('lang')  || 'en';
 
   if (!text) return new Response('Missing text', { status: 400 });
 
-  // Try Google TTS first (no key), fall back to StreamElements
-  for (const fetch of [() => fetchGoogleTTS(text), () => fetchStreamElements(text, voice)]) {
+  // Google TTS first (supports all languages including Hindi)
+  try {
+    const audio = await fetchGoogleTTS(text, lang);
+    return new Response(audio, {
+      headers: { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'public, max-age=86400' },
+    });
+  } catch {}
+
+  // StreamElements fallback — English only
+  if (lang === 'en') {
     try {
-      const audio = await fetch();
+      const audio = await fetchStreamElements(text, voice);
       return new Response(audio, {
         headers: { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'public, max-age=86400' },
       });
-    } catch {
-      // try next
-    }
+    } catch {}
   }
 
   return new Response('All TTS sources failed', { status: 502 });

@@ -75,7 +75,7 @@ export function GenerationProvider({ children }) {
   }, []);
 
   const startGeneration = useCallback(async ({
-    script, style, format, speedMultiplier, narration, voice,
+    script, style, format, language = 'en', speedMultiplier, narration, voice,
     titleText, youtubeTitle, youtubeDescription, youtubeTags,
   }) => {
     abortRef.current = false;
@@ -93,7 +93,7 @@ export function GenerationProvider({ children }) {
     const scenes = rawScenes.map(s => ({ ...s, image: null, error: false, errorMsg: null }));
 
     setActive({
-      id, title, style, format, speedMultiplier, narration, voice, titleText, rawScenes,
+      id, title, style, format, language, speedMultiplier, narration, voice, titleText, rawScenes,
       scenes: [...scenes],
       progress: { step: 'Generating images…', current: 0, total: rawScenes.length, background: true },
       status: 'generating',
@@ -158,7 +158,7 @@ export function GenerationProvider({ children }) {
       }));
 
       const audioResults = await Promise.allSettled(
-        rawScenes.map(scene => fetchSceneAudio(scene.narration || scene.scenePrompt, voice || 'Brian'))
+        rawScenes.map(scene => fetchSceneAudio(scene.narration || scene.scenePrompt, voice || 'Brian', language))
       );
       audioBuffers = audioResults.map(r => r.status === 'fulfilled' ? r.value : null);
 
@@ -202,7 +202,7 @@ export function GenerationProvider({ children }) {
       );
 
       const done = {
-        id, title, style, format, speedMultiplier, narration, voice, titleText, rawScenes,
+        id, title, style, format, language, speedMultiplier, narration, voice, titleText, rawScenes,
         scenes, status: 'done', videoUrl, youtubeTitle, youtubeDescription, youtubeTags,
         progress: { step: 'Done', current: scenes.length, total: scenes.length },
         createdAt: new Date().toISOString(),
