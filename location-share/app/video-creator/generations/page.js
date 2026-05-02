@@ -45,6 +45,7 @@ function UploadButton({ active }) {
         title: active.youtubeTitle || active.titleText || active.title || 'Finance Short',
         description: active.youtubeDescription || 'Follow for daily finance tips.',
         tags: active.youtubeTags || ['#personalfinance', '#moneytips', '#shorts'],
+        format: active.format || 'portrait',
         onProgress: (loaded, total) => setProgress({ loaded, total }),
       });
       setUploaded({ videoId, videoUrl });

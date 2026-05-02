@@ -69,14 +69,33 @@ function xhrUpload(url, blob, headers, onProgress) {
   });
 }
 
-export async function uploadToYouTube({ videoBlob, title, description, tags = [], onProgress }) {
+export async function uploadToYouTube({ videoBlob, title, description, tags = [], format = 'portrait', onProgress }) {
   const accessToken = await getFreshToken();
+  const isShorts = format === 'portrait';
+
+  // Shorts: hashtags in title = more algorithmic reach. Regular: clean title, full tags array.
+  const cleanTags = tags.map(t => t.replace(/^#/, ''));
+  let finalTitle, finalTags;
+
+  if (isShorts) {
+    const shortsHashtags = ['#Shorts', '#YouTubeShorts'];
+    const topicHashtags = tags
+      .filter(t => !['#shorts', '#youtubeshorts'].includes(t.toLowerCase()))
+      .slice(0, 4);
+    const hashtagSuffix = ' ' + [...shortsHashtags, ...topicHashtags].join(' ');
+    const baseTitle = title.slice(0, 100 - hashtagSuffix.length);
+    finalTitle = baseTitle + hashtagSuffix;
+    finalTags = [...new Set(['Shorts', 'YouTubeShorts', ...cleanTags])].slice(0, 15);
+  } else {
+    finalTitle = title.slice(0, 100);
+    finalTags = [...new Set(cleanTags)].slice(0, 15);
+  }
 
   const metadata = {
     snippet: {
-      title: title.slice(0, 100),
+      title: finalTitle,
       description,
-      tags: tags.map(t => t.replace(/^#/, '')).slice(0, 15),
+      tags: finalTags,
       categoryId: '27',
       defaultLanguage: 'en',
     },
@@ -123,7 +142,7 @@ export async function uploadToYouTube({ videoBlob, title, description, tags = []
   const videoId = result.id;
   const videoUrl = `https://www.youtube.com/shorts/${videoId}`;
 
-  saveUploadHistory({ videoId, videoUrl, title, uploadedAt: new Date().toISOString() });
+  saveUploadHistory({ videoId, videoUrl, title: finalTitle, uploadedAt: new Date().toISOString() });
 
   return { videoId, videoUrl };
 }
