@@ -32,8 +32,9 @@ export default function VideoCreator() {
 
   const topicsForGenre = getTopicsByGenre(genre);
   const sceneList = splitScenes(script);
+  const maxSecPerScene = format === 'portrait' ? 8 : 20;
   const estimatedDuration = Math.round(
-    sceneList.reduce((s, scene) => s + sceneDurationFromText(scene.narration || scene.scenePrompt, speedMultiplier), 0)
+    sceneList.reduce((s, scene) => s + sceneDurationFromText(scene.narration || scene.scenePrompt, speedMultiplier, maxSecPerScene), 0)
   );
 
   const handleGenreChange = (g) => {

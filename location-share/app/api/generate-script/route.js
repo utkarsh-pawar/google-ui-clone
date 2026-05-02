@@ -5,14 +5,13 @@ const BASE_SYSTEM = `You are a viral YouTube scriptwriter for a finance channel 
 
 Your scripts must:
 - Hook the viewer in the first 3 seconds with a shocking stat, relatable pain, or contrast
-- Use short, punchy sentences (max 12 words per N- line)
 - Build emotional tension then resolve with actionable insight
 - Use ₹ for all money amounts (Indian audience)
-- Be 9-11 scenes (perfect for 30-45 second Shorts)
 - Have visual variety in S- descriptions
+- Follow the scene count and narration length specified in the format instructions exactly
 
 S- lines are image generation prompts: vivid, specific, photorealistic descriptions.
-N- lines are TTS narration + subtitle text: short, punchy, conversational.
+N- lines are TTS narration + subtitle text.
 
 Always respond with valid JSON only. No markdown, no explanation.`;
 
@@ -45,8 +44,17 @@ export async function POST(request) {
 
   const isShorts = format === 'portrait';
   const formatNote = isShorts
-    ? 'Format: YouTube Shorts (9:16 vertical, 30-45 seconds, fast pace)'
-    : 'Format: YouTube Video (16:9 landscape, 60-90 seconds, slightly slower pace)';
+    ? `Format: YouTube Shorts (9:16 vertical)
+- 9-11 scenes total
+- N- lines: max 12 words, punchy, one idea per line
+- Total runtime: 30-45 seconds
+- Fast cuts, high energy`
+    : `Format: YouTube Video (16:9 landscape)
+- 20-25 scenes total — build a full engaging story
+- N- lines: 2-3 complete sentences per scene, conversational storytelling tone
+- Total runtime: 3-5 minutes
+- Story arc required: Hook (2 scenes) → Setup/conflict (5 scenes) → Build tension (8 scenes) → Turning point (3 scenes) → Resolution/lesson (4 scenes) → Call to action (2 scenes)
+- Each scene should naturally flow into the next like chapters of a story`;
 
   const genreNote = GENRE_INSTRUCTIONS[genre] || GENRE_INSTRUCTIONS.finance;
 

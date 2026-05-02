@@ -55,10 +55,10 @@ export function splitScenes(script) {
   return scenes.filter(s => s.scenePrompt.length > 0);
 }
 
-// Duration scales with word count: ~1.5s for a short phrase, up to 8s for a long paragraph
-export function sceneDurationFromText(text, multiplier = 1) {
+// Duration scales with word count. maxSec: 8 for Shorts, 20 for Video.
+export function sceneDurationFromText(text, multiplier = 1, maxSec = 8) {
   const words = text.trim().split(/\s+/).length;
-  const base = Math.max(1.5, Math.min(8, 1 + words * 0.15));
+  const base = Math.max(1.5, Math.min(maxSec, 1 + words * 0.45));
   return Math.round(base * multiplier * 10) / 10;
 }
 
@@ -293,11 +293,12 @@ export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffe
     onProgress(i + 1, scenes.length);
 
     // Per-scene or uniform duration; extend if TTS audio is longer
+    const maxSceneDuration = format.id === 'portrait' ? 10 : 25;
     const sceneDuration = Array.isArray(sceneDurations) ? sceneDurations[i] : sceneDurations;
     const audioDuration = decodedAudio[i]?.duration ?? 0;
     const effectiveDuration = Math.min(
       Math.max(sceneDuration, audioDuration > 0 ? audioDuration + 0.8 : 0),
-      15
+      maxSceneDuration
     );
     const HOLD_MS = Math.max(300, effectiveDuration * 1000 - FADE_MS * 2);
 
