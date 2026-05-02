@@ -1,4 +1,5 @@
 export const maxDuration = 30;
+export const runtime = 'nodejs';
 
 const SYSTEM_PROMPT = `You are a viral YouTube Shorts scriptwriter for a finance channel targeting young Indians aged 18-30.
 
