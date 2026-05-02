@@ -40,11 +40,16 @@ async function fetchImage(url, retries = 3) {
   return null;
 }
 
-// Try to get a video clip URL for this scene — returns null if unavailable
+// Try to get a video clip URL for this scene — returns null if unavailable.
+// Returns the symbol VIDEO_RATE_LIMITED if the provider is rate-limited so the
+// caller can stop trying for the rest of the generation.
+export const VIDEO_RATE_LIMITED = Symbol('rate_limited');
+
 async function fetchVideoUrl(scenePrompt, format) {
   try {
     const orientation = format.id === 'portrait' ? 'portrait' : 'landscape';
     const res = await fetch(`/api/video-source?prompt=${encodeURIComponent(scenePrompt)}&orientation=${orientation}`);
+    if (res.status === 429) return VIDEO_RATE_LIMITED;
     if (!res.ok) return null;
     const data = await res.json();
     return data.url || null;
@@ -100,6 +105,7 @@ export function GenerationProvider({ children }) {
     // All fetch() calls run concurrently and continue even when tab is hidden.
     // Try video clip first (animated reel), fall back to static image.
     let imgDone = 0;
+    let videoRateLimited = false;
     const BATCH = 4;
 
     for (let i = 0; i < rawScenes.length; i += BATCH) {
@@ -110,7 +116,15 @@ export function GenerationProvider({ children }) {
         const scene = rawScenes[idx];
 
         // Try animated video clip first (needs Pexels/Pixabay API key)
-        const videoUrl = await fetchVideoUrl(scene.scenePrompt, selectedFormat);
+        let videoUrl = null;
+        if (!videoRateLimited) {
+          const result = await fetchVideoUrl(scene.scenePrompt, selectedFormat);
+          if (result === VIDEO_RATE_LIMITED) {
+            videoRateLimited = true;
+          } else {
+            videoUrl = result;
+          }
+        }
 
         // Fall back to static image if no video
         let img = null;

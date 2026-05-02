@@ -33,6 +33,7 @@ async function searchPixabay(query, orientation) {
     `https://pixabay.com/api/videos/?key=${PIXABAY_KEY}&q=${encodeURIComponent(query)}&orientation=${orientation}&per_page=10`,
     { signal: AbortSignal.timeout(10000) }
   );
+  if (res.status === 429) throw Object.assign(new Error('Pixabay rate limit'), { status: 429 });
   if (!res.ok) throw new Error(`Pixabay ${res.status}`);
   const data = await res.json();
   if (!data.hits?.length) throw new Error('No Pixabay videos');
@@ -60,8 +61,9 @@ export async function GET(request) {
     try {
       const pxOrientation = orientation === 'portrait' ? 'vertical' : 'horizontal';
       return Response.json(await searchPixabay(query, pxOrientation));
+    } catch (e) {
+      if (e.status === 429) return Response.json({ error: 'rate_limit' }, { status: 429 });
     }
-    catch {}
   }
 
   return Response.json({ error: 'No video found' }, { status: 404 });
