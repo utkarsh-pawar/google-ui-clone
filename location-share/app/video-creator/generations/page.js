@@ -27,6 +27,7 @@ function UploadButton({ active }) {
   const [uploaded, setUploaded] = useState(null);
   const [error, setError] = useState(null);
   const [ytConnected, setYtConnected] = useState(false);
+  const [progress, setProgress] = useState(null); // { loaded, total }
 
   useEffect(() => { setYtConnected(isYouTubeConnected()); }, []);
 
@@ -34,8 +35,8 @@ function UploadButton({ active }) {
     if (!active?.videoUrl) return;
     setUploading(true);
     setError(null);
+    setProgress(null);
     try {
-      // Get the video blob from the blob URL
       const res = await fetch(active.videoUrl);
       const videoBlob = await res.blob();
 
@@ -44,12 +45,14 @@ function UploadButton({ active }) {
         title: active.youtubeTitle || active.titleText || active.title || 'Finance Short',
         description: active.youtubeDescription || 'Follow for daily finance tips.',
         tags: active.youtubeTags || ['#personalfinance', '#moneytips', '#shorts'],
+        onProgress: (loaded, total) => setProgress({ loaded, total }),
       });
       setUploaded({ videoId, videoUrl });
     } catch (err) {
       setError(err.message);
     } finally {
       setUploading(false);
+      setProgress(null);
     }
   }, [active]);
 
@@ -69,11 +72,20 @@ function UploadButton({ active }) {
     );
   }
 
+  const pct = progress ? Math.round((progress.loaded / progress.total) * 100) : 0;
+  const mb = progress ? `${(progress.loaded / 1024 / 1024).toFixed(1)} / ${(progress.total / 1024 / 1024).toFixed(1)} MB` : '';
+
   return (
     <div className={styles.uploadRow}>
       <button className={styles.uploadBtn} onClick={handleUpload} disabled={uploading}>
-        {uploading ? <><span className={styles.spinner} /> Uploading…</> : '▲ Upload to YouTube'}
+        {uploading ? <><span className={styles.spinner} /> {progress ? `Uploading ${pct}%` : 'Preparing…'}</> : '▲ Upload to YouTube'}
       </button>
+      {uploading && progress && (
+        <div className={styles.uploadProgress}>
+          <div className={styles.uploadProgressBar} style={{ width: `${pct}%` }} />
+          <span className={styles.uploadProgressLabel}>{mb}</span>
+        </div>
+      )}
       {error && <div className={styles.uploadError}>{error}</div>}
     </div>
   );

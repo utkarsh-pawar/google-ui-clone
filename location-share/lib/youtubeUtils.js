@@ -44,8 +44,32 @@ export async function getFreshToken() {
   return data.access_token;
 }
 
-// Upload a video Blob directly to YouTube from the browser
-export async function uploadToYouTube({ videoBlob, title, description, tags = [] }) {
+// XHR upload — works in background tabs + gives real progress events
+function xhrUpload(url, blob, headers, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', url);
+    Object.entries(headers).forEach(([k, v]) => xhr.setRequestHeader(k, String(v)));
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress?.(e.loaded, e.total);
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try { resolve(JSON.parse(xhr.responseText)); }
+        catch { resolve({}); }
+      } else {
+        let msg = `Upload failed: ${xhr.status}`;
+        try { msg = JSON.parse(xhr.responseText)?.error?.message || msg; } catch {}
+        reject(new Error(msg));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error during upload'));
+    xhr.onabort = () => reject(new Error('Upload was aborted'));
+    xhr.send(blob);
+  });
+}
+
+export async function uploadToYouTube({ videoBlob, title, description, tags = [], onProgress }) {
   const accessToken = await getFreshToken();
 
   const metadata = {
@@ -53,7 +77,7 @@ export async function uploadToYouTube({ videoBlob, title, description, tags = []
       title: title.slice(0, 100),
       description,
       tags: tags.map(t => t.replace(/^#/, '')).slice(0, 15),
-      categoryId: '27', // Education
+      categoryId: '27',
       defaultLanguage: 'en',
     },
     status: {
@@ -85,26 +109,20 @@ export async function uploadToYouTube({ videoBlob, title, description, tags = []
   const uploadUrl = initRes.headers.get('Location');
   if (!uploadUrl) throw new Error('No upload URL from YouTube');
 
-  // Step 2: Upload the video
-  const uploadRes = await fetch(uploadUrl, {
-    method: 'PUT',
-    headers: {
+  // Step 2: Upload via XHR — survives background tabs + gives progress
+  const result = await xhrUpload(
+    uploadUrl,
+    videoBlob,
+    {
       'Content-Type': videoBlob.type || 'video/webm',
       'Content-Length': videoBlob.size,
     },
-    body: videoBlob,
-  });
+    onProgress,
+  );
 
-  if (!uploadRes.ok) {
-    const err = await uploadRes.json().catch(() => ({}));
-    throw new Error(err?.error?.message || `YouTube upload failed ${uploadRes.status}`);
-  }
-
-  const result = await uploadRes.json();
   const videoId = result.id;
   const videoUrl = `https://www.youtube.com/shorts/${videoId}`;
 
-  // Save to local upload history
   saveUploadHistory({ videoId, videoUrl, title, uploadedAt: new Date().toISOString() });
 
   return { videoId, videoUrl };
