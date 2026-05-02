@@ -40,11 +40,37 @@ async function fetchImage(url, retries = 3) {
   return null;
 }
 
-// Try to get a video clip URL for this scene — returns null if unavailable
+// Try to get a video clip URL for this scene — returns null if unavailable.
+// Returns the symbol VIDEO_RATE_LIMITED if the provider is rate-limited so the
+// caller can stop trying for the rest of the generation.
+export const VIDEO_RATE_LIMITED = Symbol('rate_limited');
+
+export const AI_VIDEO_UNAVAILABLE = Symbol('ai_unavailable');
+
+// AI-generated video via /api/ai-video (Fal.ai or Replicate).
+// Returns AI_VIDEO_UNAVAILABLE on 503 (no key), null on other failures, or a URL string.
+async function fetchAIVideoUrl(scenePrompt, format) {
+  try {
+    const orientation = format.id === 'portrait' ? 'portrait' : 'landscape';
+    const res = await fetch('/api/ai-video', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: scenePrompt, orientation }),
+    });
+    if (res.status === 503) return AI_VIDEO_UNAVAILABLE;
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.url || null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchVideoUrl(scenePrompt, format) {
   try {
     const orientation = format.id === 'portrait' ? 'portrait' : 'landscape';
     const res = await fetch(`/api/video-source?prompt=${encodeURIComponent(scenePrompt)}&orientation=${orientation}`);
+    if (res.status === 429) return VIDEO_RATE_LIMITED;
     if (!res.ok) return null;
     const data = await res.json();
     return data.url || null;
@@ -70,7 +96,7 @@ export function GenerationProvider({ children }) {
   }, []);
 
   const startGeneration = useCallback(async ({
-    script, style, format, speedMultiplier, narration, voice,
+    script, style, format, language = 'en', speedMultiplier, narration, voice,
     titleText, youtubeTitle, youtubeDescription, youtubeTags,
   }) => {
     abortRef.current = false;
@@ -88,7 +114,7 @@ export function GenerationProvider({ children }) {
     const scenes = rawScenes.map(s => ({ ...s, image: null, error: false, errorMsg: null }));
 
     setActive({
-      id, title, style, format, speedMultiplier, narration, voice, titleText, rawScenes,
+      id, title, style, format, language, speedMultiplier, narration, voice, titleText, rawScenes,
       scenes: [...scenes],
       progress: { step: 'Generating images…', current: 0, total: rawScenes.length, background: true },
       status: 'generating',
@@ -98,8 +124,10 @@ export function GenerationProvider({ children }) {
 
     // ── Phase 1: Images / video clips ────────────────────────────────────────
     // All fetch() calls run concurrently and continue even when tab is hidden.
-    // Try video clip first (animated reel), fall back to static image.
+    // Priority: AI-generated video → stock video clip → static image.
     let imgDone = 0;
+    let videoRateLimited = false;
+    let aiVideoAvailable = true; // set to false after first 503 (no API key configured)
     const BATCH = 4;
 
     for (let i = 0; i < rawScenes.length; i += BATCH) {
@@ -109,10 +137,32 @@ export function GenerationProvider({ children }) {
       await Promise.allSettled(batchIndices.map(async idx => {
         const scene = rawScenes[idx];
 
-        // Try animated video clip first (needs Pexels/Pixabay API key)
-        const videoUrl = await fetchVideoUrl(scene.scenePrompt, selectedFormat);
+        let videoUrl = null;
+        let sourceType = 'image';
 
-        // Fall back to static image if no video
+        // 1. Try AI-generated video (Fal.ai / Replicate)
+        if (aiVideoAvailable) {
+          const aiResult = await fetchAIVideoUrl(scene.scenePrompt, selectedFormat);
+          if (aiResult === AI_VIDEO_UNAVAILABLE) {
+            aiVideoAvailable = false;
+          } else if (aiResult) {
+            videoUrl = aiResult;
+            sourceType = 'ai';
+          }
+        }
+
+        // 2. Try stock video clip (Pixabay) if no AI video
+        if (!videoUrl && !videoRateLimited) {
+          const result = await fetchVideoUrl(scene.scenePrompt, selectedFormat);
+          if (result === VIDEO_RATE_LIMITED) {
+            videoRateLimited = true;
+          } else if (result) {
+            videoUrl = result;
+            sourceType = 'stock';
+          }
+        }
+
+        // 3. Fall back to static image
         let img = null;
         if (!videoUrl) {
           const imgPrompt = makeImagePrompt(scene.scenePrompt, selectedStyle.suffix, selectedFormat);
@@ -121,11 +171,14 @@ export function GenerationProvider({ children }) {
 
         imgDone++;
         scenes[idx] = { ...rawScenes[idx], image: img, videoUrl: videoUrl || null, videoEl: null, error: false, errorMsg: null };
+        const stepLabel = sourceType === 'ai' ? 'Generating AI videos…'
+          : sourceType === 'stock' ? 'Fetching video clips…'
+          : 'Generating images…';
         setActive(a => ({
           ...a,
           scenes: [...scenes],
           progress: {
-            step: videoUrl ? 'Fetching video clips…' : 'Generating images…',
+            step: stepLabel,
             current: imgDone, total: rawScenes.length, background: true,
           },
         }));
@@ -144,7 +197,7 @@ export function GenerationProvider({ children }) {
       }));
 
       const audioResults = await Promise.allSettled(
-        rawScenes.map(scene => fetchSceneAudio(scene.narration || scene.scenePrompt, voice || 'Brian'))
+        rawScenes.map(scene => fetchSceneAudio(scene.narration || scene.scenePrompt, voice || 'Brian', language))
       );
       audioBuffers = audioResults.map(r => r.status === 'fulfilled' ? r.value : null);
 
@@ -188,7 +241,7 @@ export function GenerationProvider({ children }) {
       );
 
       const done = {
-        id, title, style, format, speedMultiplier, narration, voice, titleText, rawScenes,
+        id, title, style, format, language, speedMultiplier, narration, voice, titleText, rawScenes,
         scenes, status: 'done', videoUrl, youtubeTitle, youtubeDescription, youtubeTags,
         progress: { step: 'Done', current: scenes.length, total: scenes.length },
         createdAt: new Date().toISOString(),
