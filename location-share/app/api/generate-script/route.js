@@ -43,7 +43,7 @@ Return JSON only:
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b',
+        model: 'llama3.1-70b',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userPrompt },
@@ -56,8 +56,10 @@ Return JSON only:
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err?.error?.message || `Groq ${res.status}`);
+      const errBody = await res.text().catch(() => '');
+      let errMsg = `Cerebras ${res.status}`;
+      try { errMsg = JSON.parse(errBody)?.error?.message || errMsg; } catch {}
+      throw new Error(`${errMsg} | body: ${errBody.slice(0, 300)}`);
     }
 
     const data = await res.json();

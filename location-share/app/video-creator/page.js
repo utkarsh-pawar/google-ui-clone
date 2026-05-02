@@ -55,7 +55,7 @@ export default function VideoCreator() {
       });
       router.push('/video-creator/generations');
     } catch (err) {
-      alert(`Script generation failed: ${err.message}`);
+      alert(`Script generation failed:\n\n${err.message}`);
       setGenerating(false);
     }
   }, [selectedTopic, style, format, speedMultiplier, narration, voice, startGeneration, router]);

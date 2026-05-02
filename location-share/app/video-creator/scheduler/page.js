@@ -54,7 +54,7 @@ export default function SchedulerPage() {
 
       router.push('/video-creator/generations');
     } catch (err) {
-      alert(`Failed: ${err.message}`);
+      alert(`Script generation failed:\n\n${err.message}`);
       setGeneratingIdx(null);
     }
   }, [startGeneration, router]);
