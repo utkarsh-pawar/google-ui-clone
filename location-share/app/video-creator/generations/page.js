@@ -139,22 +139,25 @@ function SceneGrid({ scenes }) {
 
 function ActiveGeneration({ active, cancelGeneration }) {
   const isGenerating = active.status === 'generating';
+  const isWaiting   = active.status === 'waiting';
   const isRecording = active.status === 'recording';
-  const isDone = active.status === 'done';
-  const isError = active.status === 'error';
+  const isDone      = active.status === 'done';
+  const isError     = active.status === 'error';
   const isCancelled = active.status === 'cancelled';
+  const isBusy      = isGenerating || isWaiting || isRecording;
+  const inBackground = active.progress?.background;
 
   return (
     <div className={styles.activeCard}>
       <div className={styles.activeHeader}>
         <div className={styles.activeTitle}>
-          {(isGenerating || isRecording) && <span className={styles.spinner} />}
-          {isDone && <span className={styles.statusIcon}>✅</span>}
-          {isError && <span className={styles.statusIcon}>❌</span>}
+          {isBusy && <span className={styles.spinner} />}
+          {isDone      && <span className={styles.statusIcon}>✅</span>}
+          {isError     && <span className={styles.statusIcon}>❌</span>}
           {isCancelled && <span className={styles.statusIcon}>🚫</span>}
           <span>{active.title || 'Untitled'}</span>
         </div>
-        {(isGenerating || isRecording) && (
+        {isBusy && (
           <button className={styles.cancelBtn} onClick={cancelGeneration}>Cancel</button>
         )}
       </div>
@@ -163,11 +166,27 @@ function ActiveGeneration({ active, cancelGeneration }) {
         <ProgressBar current={active.progress.current} total={active.progress.total} step={active.progress.step} />
       )}
 
-      {isRecording && (
-        <div className={styles.recordingNote}>Recording video — keep this tab open until complete</div>
+      {inBackground && isGenerating && (
+        <div className={styles.backgroundNote}>
+          ✅ Running in background — you can switch tabs freely
+        </div>
       )}
 
-      {isError && <div className={styles.errorBox}>⚠ {active.error}</div>}
+      {isWaiting && (
+        <div className={styles.waitingBox}>
+          <div className={styles.waitingIcon}>👆</div>
+          <div>
+            <div className={styles.waitingTitle}>Images &amp; audio ready — open this tab to render</div>
+            <div className={styles.waitingHint}>Canvas rendering requires the tab to be visible. Switch back here to start.</div>
+          </div>
+        </div>
+      )}
+
+      {isRecording && (
+        <div className={styles.recordingNote}>🎬 Rendering — keep this tab open until complete</div>
+      )}
+
+      {isError     && <div className={styles.errorBox}>⚠ {active.error}</div>}
       {isCancelled && <div className={styles.cancelledBox}>Generation was cancelled.</div>}
 
       {isDone && active.videoUrl && (

@@ -1,12 +1,11 @@
 'use client';
 import { createContext, useContext, useState, useRef, useCallback } from 'react';
 import {
-  STYLES, FORMATS, splitScenes, sceneDurationFromText, makeImagePrompt, pollinationsUrl,
-  loadImage, processInBatches, fetchSceneAudio, renderVideo, sleep
+  STYLES, FORMATS, splitScenes, sceneDurationFromText, makeImagePrompt,
+  pollinationsUrl, loadImage, fetchSceneAudio, renderVideo,
 } from '@/lib/videoUtils';
 
 const GenerationContext = createContext(null);
-
 const HISTORY_KEY = 'video-generation-history';
 
 function loadHistory() {
@@ -17,11 +16,28 @@ function loadHistory() {
 function saveHistory(history) {
   try {
     const meta = history.map(({ videoUrl, scenes, ...rest }) => ({
-      ...rest,
-      sceneCount: scenes?.length || rest.sceneCount || 0,
+      ...rest, sceneCount: scenes?.length || rest.sceneCount || 0,
     }));
     localStorage.setItem(HISTORY_KEY, JSON.stringify(meta.slice(0, 20)));
   } catch {}
+}
+
+// Resolves as soon as the document tab is visible (or immediately if already visible)
+function waitForVisible() {
+  if (typeof document === 'undefined' || !document.hidden) return Promise.resolve();
+  return new Promise(resolve => {
+    const handler = () => { if (!document.hidden) { document.removeEventListener('visibilitychange', handler); resolve(); } };
+    document.addEventListener('visibilitychange', handler);
+  });
+}
+
+// Fetch one image with retries — no sleep between retries so it works in background
+async function fetchImage(url, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try { return await loadImage(url); }
+    catch { if (i === retries - 1) return null; }
+  }
+  return null;
 }
 
 export function GenerationProvider({ children }) {
@@ -40,7 +56,10 @@ export function GenerationProvider({ children }) {
     setToasts(t => t.filter(x => x.id !== id));
   }, []);
 
-  const startGeneration = useCallback(async ({ script, style, format, speedMultiplier, narration, voice, titleText, youtubeTitle, youtubeDescription, youtubeTags }) => {
+  const startGeneration = useCallback(async ({
+    script, style, format, speedMultiplier, narration, voice,
+    titleText, youtubeTitle, youtubeDescription, youtubeTags,
+  }) => {
     abortRef.current = false;
     const rawScenes = splitScenes(script);
     if (!rawScenes.length) return;
@@ -49,87 +68,104 @@ export function GenerationProvider({ children }) {
     const title = (rawScenes[0].narration || rawScenes[0].scenePrompt || '').slice(0, 60);
     const selectedStyle = STYLES.find(s => s.id === style) || STYLES[0];
     const selectedFormat = FORMATS.find(f => f.id === format) || FORMATS[0];
-    const sceneDurations = rawScenes.map(s => sceneDurationFromText(s.narration || s.scenePrompt, speedMultiplier));
+    const sceneDurations = rawScenes.map(s =>
+      sceneDurationFromText(s.narration || s.scenePrompt, speedMultiplier)
+    );
 
-    const initial = {
+    const scenes = rawScenes.map(s => ({ ...s, image: null, error: false, errorMsg: null }));
+
+    setActive({
       id, title, style, format, speedMultiplier, narration, voice, titleText, rawScenes,
-      scenes: rawScenes.map(s => ({ ...s, image: null, error: false, errorMsg: null })),
-      progress: { step: 'Generating images…', current: 0, total: rawScenes.length },
+      scenes: [...scenes],
+      progress: { step: 'Generating images…', current: 0, total: rawScenes.length, background: true },
       status: 'generating',
-      videoUrl: null,
-      error: null,
+      videoUrl: null, error: null,
       createdAt: new Date().toISOString(),
-    };
+    });
 
-    setActive(initial);
+    // ── Phase 1: Images ───────────────────────────────────────────────────────
+    // All fetch() calls run concurrently and continue even when tab is hidden.
+    // We use groups of 4 to avoid overwhelming the proxy, but no sleep between
+    // groups — the await resolves on network completion, not a timer.
+    let imgDone = 0;
+    const BATCH = 4;
 
-    // Phase 1: generate images — batches of 2 concurrent, 3 retries each
-    const scenes = [...initial.scenes];
-    let doneCount = 0;
+    for (let i = 0; i < rawScenes.length; i += BATCH) {
+      if (abortRef.current) break;
+      const batchIndices = Array.from({ length: Math.min(BATCH, rawScenes.length - i) }, (_, j) => i + j);
 
-    await processInBatches(rawScenes, async (scene, idx) => {
-      const prompt = makeImagePrompt(scene.scenePrompt, selectedStyle.suffix, selectedFormat);
-      return loadImage(pollinationsUrl(prompt, selectedFormat.width, selectedFormat.height, idx));
-    }, {
-      batchSize: 2,
-      retries: 3,
-      retryDelay: 3000,
-      batchDelay: 800,
-      abortRef,
-      onItemDone: (idx, img, error) => {
-        doneCount++;
-        scenes[idx] = { ...rawScenes[idx], image: img, error: !!error, errorMsg: error };
-        if (error) addToast(`Scene ${idx + 1}: ${error}`);
+      await Promise.allSettled(batchIndices.map(async idx => {
+        const scene = rawScenes[idx];
+        const prompt = makeImagePrompt(scene.scenePrompt, selectedStyle.suffix, selectedFormat);
+        const url = pollinationsUrl(prompt, selectedFormat.width, selectedFormat.height, idx);
+        const img = await fetchImage(url, 3);
+        imgDone++;
+        scenes[idx] = { ...rawScenes[idx], image: img, error: !img, errorMsg: img ? null : 'Image failed' };
+        if (!img) addToast(`Scene ${idx + 1}: image failed`);
         setActive(a => ({
           ...a,
           scenes: [...scenes],
-          progress: { step: 'Generating images…', current: doneCount, total: rawScenes.length },
+          progress: { step: 'Generating images…', current: imgDone, total: rawScenes.length, background: true },
         }));
-      },
-    });
-
-    if (abortRef.current) { setActive(a => ({ ...a, status: 'cancelled' })); return; }
-
-    // Phase 2 (optional): fetch TTS narration
-    let audioBuffers = [];
-    if (narration) {
-      setActive(a => ({ ...a, status: 'generating', progress: { step: 'Generating narration…', current: 0, total: rawScenes.length } }));
-      for (let i = 0; i < rawScenes.length; i++) {
-        if (abortRef.current) { setActive(a => ({ ...a, status: 'cancelled' })); return; }
-        setActive(a => ({ ...a, progress: { step: 'Generating narration…', current: i + 1, total: rawScenes.length } }));
-        const buf = await fetchSceneAudio(rawScenes[i].narration || rawScenes[i].scenePrompt, voice || 'Brian');
-        audioBuffers.push(buf);
-      }
+      }));
     }
 
     if (abortRef.current) { setActive(a => ({ ...a, status: 'cancelled' })); return; }
 
-    // Phase 3: record video
+    // ── Phase 2: Audio ────────────────────────────────────────────────────────
+    // All TTS fetches run concurrently — also background-safe.
+    let audioBuffers = [];
+    if (narration) {
+      setActive(a => ({
+        ...a,
+        progress: { step: 'Generating narration…', current: 0, total: rawScenes.length, background: true },
+      }));
+
+      const audioResults = await Promise.allSettled(
+        rawScenes.map(scene => fetchSceneAudio(scene.narration || scene.scenePrompt, voice || 'Brian'))
+      );
+      audioBuffers = audioResults.map(r => r.status === 'fulfilled' ? r.value : null);
+
+      setActive(a => ({
+        ...a,
+        progress: { step: 'Generating narration…', current: rawScenes.length, total: rawScenes.length, background: true },
+      }));
+    }
+
+    if (abortRef.current) { setActive(a => ({ ...a, status: 'cancelled' })); return; }
+
+    // ── Phase 3: Render ───────────────────────────────────────────────────────
+    // Canvas + MediaRecorder require an active, visible tab.
+    // We wait here until the user switches back.
+    setActive(a => ({ ...a, status: 'waiting', progress: { step: 'Open this tab to start rendering…', current: 0, total: scenes.length, background: false } }));
+    await waitForVisible();
+
+    if (abortRef.current) { setActive(a => ({ ...a, status: 'cancelled' })); return; }
+
     setActive(a => ({ ...a, status: 'recording', progress: { step: 'Recording video…', current: 0, total: scenes.length } }));
 
     try {
-      const videoUrl = await renderVideo(scenes, sceneDurations, (current, total) => {
-        setActive(a => ({ ...a, progress: { step: 'Recording video…', current, total } }));
-      }, audioBuffers, selectedFormat, titleText || '');
+      const videoUrl = await renderVideo(
+        scenes, sceneDurations,
+        (current, total) => setActive(a => ({ ...a, progress: { step: 'Recording video…', current, total } })),
+        audioBuffers, selectedFormat, titleText || '',
+      );
 
-      const done = { ...initial, scenes, status: 'done', videoUrl, youtubeTitle, youtubeDescription, youtubeTags, progress: { step: 'Done', current: scenes.length, total: scenes.length } };
+      const done = {
+        id, title, style, format, speedMultiplier, narration, voice, titleText, rawScenes,
+        scenes, status: 'done', videoUrl, youtubeTitle, youtubeDescription, youtubeTags,
+        progress: { step: 'Done', current: scenes.length, total: scenes.length },
+        createdAt: new Date().toISOString(),
+      };
       setActive(done);
-
-      setHistory(h => {
-        const updated = [done, ...h];
-        saveHistory(updated);
-        return updated;
-      });
+      setHistory(h => { const updated = [done, ...h]; saveHistory(updated); return updated; });
     } catch (err) {
       setActive(a => ({ ...a, status: 'error', error: err.message }));
     }
   }, [addToast]);
 
-  const cancelGeneration = useCallback(() => {
-    abortRef.current = true;
-  }, []);
+  const cancelGeneration = useCallback(() => { abortRef.current = true; }, []);
 
-  // Load history on first render (client only)
   const historyLoaded = useRef(false);
   if (typeof window !== 'undefined' && !historyLoaded.current) {
     historyLoaded.current = true;
