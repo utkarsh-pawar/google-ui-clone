@@ -44,58 +44,16 @@ export async function getFreshToken() {
   return data.access_token;
 }
 
-// XHR upload — works in background tabs + gives real progress events
-function xhrUpload(url, blob, headers, onProgress) {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('PUT', url);
-    Object.entries(headers).forEach(([k, v]) => xhr.setRequestHeader(k, String(v)));
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) onProgress?.(e.loaded, e.total);
-    };
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try { resolve(JSON.parse(xhr.responseText)); }
-        catch { resolve({}); }
-      } else {
-        let msg = `Upload failed: ${xhr.status}`;
-        try { msg = JSON.parse(xhr.responseText)?.error?.message || msg; } catch {}
-        reject(new Error(msg));
-      }
-    };
-    xhr.onerror = () => reject(new Error('Network error during upload'));
-    xhr.onabort = () => reject(new Error('Upload was aborted'));
-    xhr.send(blob);
-  });
-}
-
-export async function uploadToYouTube({ videoBlob, title, description, tags = [], format = 'portrait', onProgress }) {
+// Upload a video Blob directly to YouTube from the browser
+export async function uploadToYouTube({ videoBlob, title, description, tags = [] }) {
   const accessToken = await getFreshToken();
-  const isShorts = format === 'portrait';
-
-  // Shorts: hashtags in title = more algorithmic reach. Regular: clean title, full tags array.
-  const cleanTags = tags.map(t => t.replace(/^#/, ''));
-  let finalTitle, finalTags, finalDescription;
-
-  if (isShorts) {
-    // Only #Shorts in title (9 chars) — that's all YouTube needs for Shorts feed discovery
-    // All other hashtags go in the description where they also count for reach
-    finalTitle = title.slice(0, 91) + ' #Shorts';
-    const hashtagBlock = [...new Set(['#Shorts', '#YouTubeShorts', ...tags])].join(' ');
-    finalDescription = description + '\n\n' + hashtagBlock;
-    finalTags = [...new Set(['Shorts', 'YouTubeShorts', ...cleanTags])].slice(0, 15);
-  } else {
-    finalTitle = title.slice(0, 100);
-    finalDescription = description;
-    finalTags = [...new Set(cleanTags)].slice(0, 15);
-  }
 
   const metadata = {
     snippet: {
-      title: finalTitle,
-      description: finalDescription,
-      tags: finalTags,
-      categoryId: '27',
+      title: title.slice(0, 100),
+      description,
+      tags: tags.map(t => t.replace(/^#/, '')).slice(0, 15),
+      categoryId: '27', // Education
       defaultLanguage: 'en',
     },
     status: {
@@ -127,23 +85,50 @@ export async function uploadToYouTube({ videoBlob, title, description, tags = []
   const uploadUrl = initRes.headers.get('Location');
   if (!uploadUrl) throw new Error('No upload URL from YouTube');
 
-  // Step 2: Upload via XHR — survives background tabs + gives progress
-  const result = await xhrUpload(
-    uploadUrl,
-    videoBlob,
-    {
+  // Step 2: Upload the video
+  const uploadRes = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: {
       'Content-Type': videoBlob.type || 'video/webm',
       'Content-Length': videoBlob.size,
     },
-    onProgress,
-  );
+    body: videoBlob,
+  });
 
+  if (!uploadRes.ok) {
+    const err = await uploadRes.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `YouTube upload failed ${uploadRes.status}`);
+  }
+
+  const result = await uploadRes.json();
   const videoId = result.id;
   const videoUrl = `https://www.youtube.com/shorts/${videoId}`;
 
-  saveUploadHistory({ videoId, videoUrl, title: finalTitle, uploadedAt: new Date().toISOString() });
+  // Save to local upload history
+  saveUploadHistory({ videoId, videoUrl, title, uploadedAt: new Date().toISOString() });
 
   return { videoId, videoUrl };
+}
+
+export async function uploadThumbnail(videoId, thumbnailBlob) {
+  const accessToken = await getFreshToken();
+  const res = await fetch(
+    `https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=${videoId}&uploadType=media`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': thumbnailBlob.type || 'image/jpeg',
+        'Content-Length': thumbnailBlob.size,
+      },
+      body: thumbnailBlob,
+    }
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `Thumbnail upload failed ${res.status}`);
+  }
+  return res.json();
 }
 
 export function getUploadHistory() {

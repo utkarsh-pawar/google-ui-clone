@@ -2,7 +2,7 @@
 import { createContext, useContext, useState, useRef, useCallback } from 'react';
 import {
   STYLES, FORMATS, splitScenes, sceneDurationFromText, makeImagePrompt,
-  pollinationsUrl, loadImage, fetchSceneAudio, renderVideo,
+  pollinationsUrl, loadImage, loadVideoClip, fetchSceneAudio, renderVideo,
 } from '@/lib/videoUtils';
 
 const GenerationContext = createContext(null);
@@ -38,6 +38,19 @@ async function fetchImage(url, retries = 3) {
     catch { if (i === retries - 1) return null; }
   }
   return null;
+}
+
+// Try to get a video clip URL for this scene — returns null if unavailable
+async function fetchVideoUrl(scenePrompt, format) {
+  try {
+    const orientation = format.id === 'portrait' ? 'portrait' : 'landscape';
+    const res = await fetch(`/api/video-source?prompt=${encodeURIComponent(scenePrompt)}&orientation=${orientation}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.url || null;
+  } catch {
+    return null;
+  }
 }
 
 export function GenerationProvider({ children }) {
@@ -83,10 +96,9 @@ export function GenerationProvider({ children }) {
       createdAt: new Date().toISOString(),
     });
 
-    // ── Phase 1: Images ───────────────────────────────────────────────────────
+    // ── Phase 1: Images / video clips ────────────────────────────────────────
     // All fetch() calls run concurrently and continue even when tab is hidden.
-    // We use groups of 4 to avoid overwhelming the proxy, but no sleep between
-    // groups — the await resolves on network completion, not a timer.
+    // Try video clip first (animated reel), fall back to static image.
     let imgDone = 0;
     const BATCH = 4;
 
@@ -96,16 +108,26 @@ export function GenerationProvider({ children }) {
 
       await Promise.allSettled(batchIndices.map(async idx => {
         const scene = rawScenes[idx];
-        const prompt = makeImagePrompt(scene.scenePrompt, selectedStyle.suffix, selectedFormat);
-        const url = pollinationsUrl(prompt, selectedFormat.width, selectedFormat.height, idx);
-        const img = await fetchImage(url, 3);
+
+        // Try animated video clip first (needs Pexels/Pixabay API key)
+        const videoUrl = await fetchVideoUrl(scene.scenePrompt, selectedFormat);
+
+        // Fall back to static image if no video
+        let img = null;
+        if (!videoUrl) {
+          const imgPrompt = makeImagePrompt(scene.scenePrompt, selectedStyle.suffix, selectedFormat);
+          img = await fetchImage(pollinationsUrl(imgPrompt, selectedFormat.width, selectedFormat.height, idx), 3);
+        }
+
         imgDone++;
-        scenes[idx] = { ...rawScenes[idx], image: img, error: !img, errorMsg: img ? null : 'Image failed' };
-        if (!img) addToast(`Scene ${idx + 1}: image failed`);
+        scenes[idx] = { ...rawScenes[idx], image: img, videoUrl: videoUrl || null, videoEl: null, error: false, errorMsg: null };
         setActive(a => ({
           ...a,
           scenes: [...scenes],
-          progress: { step: 'Generating images…', current: imgDone, total: rawScenes.length, background: true },
+          progress: {
+            step: videoUrl ? 'Fetching video clips…' : 'Generating images…',
+            current: imgDone, total: rawScenes.length, background: true,
+          },
         }));
       }));
     }
@@ -141,6 +163,20 @@ export function GenerationProvider({ children }) {
     await waitForVisible();
 
     if (abortRef.current) { setActive(a => ({ ...a, status: 'cancelled' })); return; }
+
+    // Load video elements for animated scenes (requires active tab / DOM)
+    const hasVideoClips = scenes.some(s => s.videoUrl);
+    if (hasVideoClips) {
+      setActive(a => ({ ...a, status: 'recording', progress: { step: 'Loading video clips…', current: 0, total: scenes.length } }));
+      await Promise.allSettled(scenes.map(async (scene, idx) => {
+        if (!scene.videoUrl) return;
+        try {
+          scenes[idx] = { ...scene, videoEl: await loadVideoClip(scene.videoUrl) };
+        } catch {
+          // Video element failed — scene will use image fallback (videoEl stays null)
+        }
+      }));
+    }
 
     setActive(a => ({ ...a, status: 'recording', progress: { step: 'Recording video…', current: 0, total: scenes.length } }));
 

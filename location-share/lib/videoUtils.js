@@ -55,10 +55,10 @@ export function splitScenes(script) {
   return scenes.filter(s => s.scenePrompt.length > 0);
 }
 
-// ~0.4s per word (TTS speaking rate), capped at 8s — scene length comes from scene count
+// Duration scales with word count: ~1.5s for a short phrase, up to 8s for a long paragraph
 export function sceneDurationFromText(text, multiplier = 1) {
   const words = text.trim().split(/\s+/).length;
-  const base = Math.max(1.5, Math.min(8, words * 0.4));
+  const base = Math.max(1.5, Math.min(8, 1 + words * 0.15));
   return Math.round(base * multiplier * 10) / 10;
 }
 
@@ -99,6 +99,89 @@ export async function loadImageWithRetry(url, retries = 3) {
     }
   }
   return { img: null, error: `Failed after ${retries} attempts — ${lastError}` };
+}
+
+// Load a video element from a URL (for animated reel scenes)
+export async function loadVideoClip(url, timeout = 15000) {
+  return new Promise((resolve, reject) => {
+    const vid = document.createElement('video');
+    vid.crossOrigin = 'anonymous';
+    vid.muted = true;
+    vid.loop = true;
+    vid.playsInline = true;
+    const timer = setTimeout(() => reject(new Error('Video clip timeout')), timeout);
+    vid.oncanplay = () => { clearTimeout(timer); resolve(vid); };
+    vid.onerror = () => { clearTimeout(timer); reject(new Error('Video clip failed')); };
+    vid.src = url;
+    vid.load();
+  });
+}
+
+// Generate a YouTube thumbnail from the first good scene image
+export async function generateThumbnail(image, title, format) {
+  const W = format.width;
+  const H = format.height;
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // Background
+  if (image) {
+    ctx.drawImage(image, 0, 0, W, H);
+  } else {
+    ctx.fillStyle = '#0a1628';
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // Dark gradient over bottom 55%
+  const grad = ctx.createLinearGradient(0, H * 0.42, 0, H);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(0.5, 'rgba(0,0,0,0.7)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.95)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Title text — large, bold, left-aligned with padding
+  const fontSize = format.id === 'portrait' ? Math.round(W * 0.075) : Math.round(W * 0.055);
+  const pad = Math.round(W * 0.05);
+  const maxWidth = W - pad * 2;
+  ctx.font = `900 ${fontSize}px -apple-system, BlinkMacSystemFont, Arial, sans-serif`;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = 'rgba(0,0,0,0.9)';
+  ctx.shadowBlur = 16;
+
+  const words = title.split(' ');
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word;
+    if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = word; }
+    else line = test;
+  }
+  if (line) lines.push(line);
+
+  const lineH = fontSize * 1.25;
+  const totalTextH = lines.length * lineH;
+  const startY = H - totalTextH - pad * 1.5;
+  lines.forEach((l, i) => ctx.fillText(l, pad, startY + i * lineH + fontSize));
+
+  // #SHORTS badge for portrait
+  if (format.id === 'portrait') {
+    const bh = Math.round(H * 0.045);
+    const bpad = Math.round(W * 0.04);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#ff0000';
+    ctx.beginPath();
+    ctx.roundRect(pad, H * 0.04, bpad * 2 + ctx.measureText('#SHORTS').width, bh + bpad, 6);
+    ctx.fill();
+    ctx.font = `800 ${Math.round(bh * 0.7)}px -apple-system, sans-serif`;
+    ctx.fillStyle = '#fff';
+    ctx.fillText('#SHORTS', pad + bpad, H * 0.04 + bh * 0.85);
+  }
+
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.93));
 }
 
 /**
@@ -160,9 +243,10 @@ export async function fetchSceneAudio(text, voice = 'Brian') {
   }
 }
 
-function drawSubtitle(ctx, text, W, H) {
+// progress: 0→1 within the scene — drives subtitle slide-up + fade-in
+function drawSubtitle(ctx, text, W, H, progress = 1) {
   const padding = 48;
-  const fontSize = W < 900 ? 38 : 34; // slightly larger for portrait
+  const fontSize = W < 900 ? 38 : 34;
   const maxWidth = W - padding * 2;
   const lineHeight = fontSize * 1.5;
 
@@ -181,17 +265,21 @@ function drawSubtitle(ctx, text, W, H) {
   const display = lines.slice(0, 3);
 
   const totalH = display.length * lineHeight + 32;
-  const y = H - totalH - 24;
+  // slide up from 20px below its resting position
+  const slideOffset = Math.round((1 - Math.min(progress * 4, 1)) * 20);
+  const y = H - totalH - 24 + slideOffset;
+  const alpha = Math.min(progress * 5, 1); // fade in fast at scene start
 
-  ctx.globalAlpha = 0.75;
+  ctx.save();
+  ctx.globalAlpha = alpha * 0.78;
   ctx.fillStyle = '#000';
   ctx.fillRect(0, y - 8, W, totalH + 16);
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = alpha;
   ctx.fillStyle = '#fff';
   ctx.shadowColor = 'rgba(0,0,0,0.8)';
   ctx.shadowBlur = 6;
   display.forEach((l, i) => ctx.fillText(l, W / 2, y + i * lineHeight + fontSize));
-  ctx.shadowBlur = 0;
+  ctx.restore();
 }
 
 function drawTitle(ctx, text, W, H) {
@@ -292,13 +380,12 @@ export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffe
     const scene = scenes[i];
     onProgress(i + 1, scenes.length);
 
-    // Audio-driven timing: scene lasts exactly as long as its narration + tiny breath gap.
-    // If no audio, fall back to word-count estimate. Hard cap at 8s catches runaway scenes.
+    // Per-scene or uniform duration; extend if TTS audio is longer
     const sceneDuration = Array.isArray(sceneDurations) ? sceneDurations[i] : sceneDurations;
     const audioDuration = decodedAudio[i]?.duration ?? 0;
     const effectiveDuration = Math.min(
-      audioDuration > 0 ? audioDuration + 0.3 : sceneDuration,
-      8
+      Math.max(sceneDuration, audioDuration > 0 ? audioDuration + 0.8 : 0),
+      15
     );
     const HOLD_MS = Math.max(300, effectiveDuration * 1000 - FADE_MS * 2);
 
@@ -308,17 +395,32 @@ export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffe
     const [s0, s1, x0, x1, y0, y1] = KB_EFFECTS[i % KB_EFFECTS.length];
     let sceneFrame = 0;
 
+    // Start video clip playing if this scene has one
+    if (scene.videoEl) {
+      scene.videoEl.currentTime = 0;
+      scene.videoEl.play().catch(() => {});
+    }
+
     const drawFrame = (alpha) => {
-      // Ease in-out progress for smooth Ken Burns motion
       const p = totalFrames > 1 ? sceneFrame / (totalFrames - 1) : 0;
       const t = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
-      const scale = s0 + (s1 - s0) * t;
-      const tx = (x0 + (x1 - x0) * t) * W;
-      const ty = (y0 + (y1 - y0) * t) * H;
 
       ctx.clearRect(0, 0, W, H);
 
-      if (scene.image) {
+      if (scene.videoEl) {
+        // Animated reel: draw live video frame — slight zoom for cinematic feel
+        ctx.save();
+        const vscale = 1.04;
+        ctx.translate(W / 2, H / 2);
+        ctx.scale(vscale, vscale);
+        ctx.translate(-W / 2, -H / 2);
+        ctx.drawImage(scene.videoEl, 0, 0, W, H);
+        ctx.restore();
+      } else if (scene.image) {
+        // Static image with Ken Burns
+        const scale = s0 + (s1 - s0) * t;
+        const tx = (x0 + (x1 - x0) * t) * W;
+        const ty = (y0 + (y1 - y0) * t) * H;
         ctx.save();
         ctx.translate(W / 2 + tx, H / 2 + ty);
         ctx.scale(scale, scale);
@@ -330,13 +432,14 @@ export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffe
         ctx.fillRect(0, 0, W, H);
       }
 
-      // Black fade overlay
+      // Black fade overlay between scenes
       ctx.globalAlpha = 1 - alpha;
       ctx.fillStyle = '#000';
       ctx.fillRect(0, 0, W, H);
       ctx.globalAlpha = 1;
 
-      drawSubtitle(ctx, scene.narration || scene.text || '', W, H);
+      // Subtitle with slide-up animation (p = scene progress 0→1)
+      drawSubtitle(ctx, scene.narration || scene.text || '', W, H, p);
       if (i === 0 && scriptTitle) drawTitle(ctx, scriptTitle, W, H);
       sceneFrame++;
     };
