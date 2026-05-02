@@ -110,6 +110,27 @@ export async function uploadToYouTube({ videoBlob, title, description, tags = []
   return { videoId, videoUrl };
 }
 
+export async function uploadThumbnail(videoId, thumbnailBlob) {
+  const accessToken = await getFreshToken();
+  const res = await fetch(
+    `https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=${videoId}&uploadType=media`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': thumbnailBlob.type || 'image/jpeg',
+        'Content-Length': thumbnailBlob.size,
+      },
+      body: thumbnailBlob,
+    }
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `Thumbnail upload failed ${res.status}`);
+  }
+  return res.json();
+}
+
 export function getUploadHistory() {
   try { return JSON.parse(localStorage.getItem(YT_HISTORY_KEY) || '[]'); }
   catch { return []; }

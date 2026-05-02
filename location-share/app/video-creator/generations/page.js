@@ -2,7 +2,8 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useGeneration } from '@/context/GenerationContext';
-import { uploadToYouTube, isYouTubeConnected, getFreshToken } from '@/lib/youtubeUtils';
+import { uploadToYouTube, isYouTubeConnected, getFreshToken, uploadThumbnail } from '@/lib/youtubeUtils';
+import { generateThumbnail, FORMATS } from '@/lib/videoUtils';
 import styles from './page.module.css';
 
 function VideoPlayer({ src }) {
@@ -22,11 +23,80 @@ function VideoPlayer({ src }) {
   return <video ref={ref} src={src} controls className={styles.video} />;
 }
 
-function UploadButton({ active }) {
+function ThumbnailPanel({ active, uploadedVideoId }) {
+  const [thumbUrl, setThumbUrl] = useState(null);
+  const [generating, setGenerating] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploaded, setUploaded] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleGenerate = useCallback(async () => {
+    setGenerating(true);
+    setError(null);
+    try {
+      const firstGoodScene = active.scenes?.find(s => s.image);
+      const format = FORMATS.find(f => f.id === active.format) || FORMATS[0];
+      const blob = await generateThumbnail(firstGoodScene?.image || null, active.youtubeTitle || active.title || '', format);
+      setThumbUrl(URL.createObjectURL(blob));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setGenerating(false);
+    }
+  }, [active]);
+
+  const handleUploadThumb = useCallback(async () => {
+    if (!thumbUrl || !uploadedVideoId) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const res = await fetch(thumbUrl);
+      const blob = await res.blob();
+      await uploadThumbnail(uploadedVideoId, blob);
+      setUploaded(true);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setUploading(false);
+    }
+  }, [thumbUrl, uploadedVideoId]);
+
+  return (
+    <div className={styles.thumbPanel}>
+      <div className={styles.thumbHeader}>
+        <span className={styles.thumbTitle}>🖼 Cover Thumbnail</span>
+        {!thumbUrl && (
+          <button className={styles.thumbGenBtn} onClick={handleGenerate} disabled={generating}>
+            {generating ? <><span className={styles.spinner} /> Generating…</> : '✨ Generate Cover'}
+          </button>
+        )}
+      </div>
+      {thumbUrl && (
+        <div className={styles.thumbPreview}>
+          <img src={thumbUrl} alt="Thumbnail preview" className={styles.thumbImg} />
+          <div className={styles.thumbActions}>
+            <a href={thumbUrl} download="thumbnail.jpg" className={styles.thumbDownloadBtn}>⬇ Download</a>
+            {uploadedVideoId && !uploaded && (
+              <button className={styles.thumbUploadBtn} onClick={handleUploadThumb} disabled={uploading}>
+                {uploading ? <><span className={styles.spinner} /> Uploading…</> : '▲ Set as YouTube Thumbnail'}
+              </button>
+            )}
+            {uploaded && <span className={styles.thumbDone}>✅ Thumbnail set</span>}
+            <button className={styles.thumbRegenBtn} onClick={handleGenerate} disabled={generating}>↺ Regenerate</button>
+          </div>
+        </div>
+      )}
+      {error && <div className={styles.uploadError}>{error}</div>}
+    </div>
+  );
+}
+
+function UploadButton({ active, onUploaded }) {
   const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState(null);
   const [error, setError] = useState(null);
   const [ytConnected, setYtConnected] = useState(false);
+  const [progress, setProgress] = useState(null);
 
   useEffect(() => { setYtConnected(isYouTubeConnected()); }, []);
 
@@ -46,6 +116,7 @@ function UploadButton({ active }) {
         tags: active.youtubeTags || ['#personalfinance', '#moneytips', '#shorts'],
       });
       setUploaded({ videoId, videoUrl });
+      onUploaded?.(videoId);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -125,6 +196,7 @@ function SceneGrid({ scenes }) {
 }
 
 function ActiveGeneration({ active, cancelGeneration }) {
+  const [uploadedId, setUploadedId] = useState(null);
   const isGenerating = active.status === 'generating';
   const isRecording = active.status === 'recording';
   const isDone = active.status === 'done';
@@ -164,7 +236,7 @@ function ActiveGeneration({ active, cancelGeneration }) {
             <a href={active.videoUrl} download={`${active.title || 'video'}.webm`} className={styles.downloadBtn}>
               ⬇ Download
             </a>
-            <UploadButton active={active} />
+            <UploadButton active={active} onUploaded={id => setUploadedId(id)} />
           </div>
           {active.youtubeTitle && (
             <div className={styles.ytMetaPreview}>
@@ -174,6 +246,7 @@ function ActiveGeneration({ active, cancelGeneration }) {
               )}
             </div>
           )}
+          <ThumbnailPanel active={active} uploadedVideoId={uploadedId} />
         </div>
       )}
 
