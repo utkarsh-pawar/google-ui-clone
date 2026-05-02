@@ -4,61 +4,82 @@ import { useRouter } from 'next/navigation';
 import { useGeneration } from '@/context/GenerationContext';
 import Link from 'next/link';
 import { STYLES, FORMATS, TTS_VOICES, splitScenes, sceneDurationFromText } from '@/lib/videoUtils';
-import { getTodaysTopic, FINANCE_TOPICS } from '@/lib/financeTopics';
+import { getTodaysTopic, getTopicsByGenre, GENRES } from '@/lib/financeTopics';
 import styles from './page.module.css';
 
 export default function VideoCreator() {
   const router = useRouter();
   const { startGeneration, active } = useGeneration();
 
+  // Auto-generate state
+  const [genre, setGenre] = useState('motivation');
+  const [format, setFormat] = useState('portrait');
+  const [selectedTopic, setSelectedTopic] = useState(() => getTodaysTopic());
+  const [generating, setGenerating] = useState(false);
+  const [pendingScript, setPendingScript] = useState(null);
+  const [titleOptions, setTitleOptions] = useState(null);
+
+  // Manual script state
   const [script, setScript] = useState('');
   const [titleText, setTitleText] = useState('');
   const [youtubeTitle, setYoutubeTitle] = useState('');
   const [youtubeDescription, setYoutubeDescription] = useState('');
   const [youtubeTags, setYoutubeTags] = useState([]);
   const [style, setStyle] = useState(STYLES[0].id);
-  const [format, setFormat] = useState('portrait');
   const [speedMultiplier, setSpeedMultiplier] = useState(1);
   const [narration, setNarration] = useState(true);
   const [voice, setVoice] = useState(TTS_VOICES[0].id);
-  const [generating, setGenerating] = useState(false);
-  const [selectedTopic, setSelectedTopic] = useState(() => getTodaysTopic());
 
+  const topicsForGenre = getTopicsByGenre(genre);
   const sceneList = splitScenes(script);
   const estimatedDuration = Math.round(
     sceneList.reduce((s, scene) => s + sceneDurationFromText(scene.narration || scene.scenePrompt, speedMultiplier), 0)
   );
 
-  const handleAutoGenerate = useCallback(async () => {
+  const handleGenreChange = (g) => {
+    setGenre(g);
+    setPendingScript(null);
+    setTitleOptions(null);
+    const topics = getTopicsByGenre(g);
+    setSelectedTopic(topics[0] || getTodaysTopic());
+  };
+
+  const handleGenerateTitles = useCallback(async () => {
     setGenerating(true);
+    setPendingScript(null);
+    setTitleOptions(null);
     try {
       const res = await fetch('/api/generate-script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: selectedTopic.topic, angle: selectedTopic.angle }),
+        body: JSON.stringify({ topic: selectedTopic.topic, angle: selectedTopic.angle, genre, format }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-
-      // Immediately kick off full pipeline — no second click needed
-      startGeneration({
-        script: data.script || '',
-        style,
-        format,
-        speedMultiplier,
-        narration,
-        voice,
-        titleText: data.suggestedTitle || '',
-        youtubeTitle: data.youtubeTitle || '',
-        youtubeDescription: data.description || '',
-        youtubeTags: data.tags || [],
-      });
-      router.push('/video-creator/generations');
+      setPendingScript(data);
+      setTitleOptions(data.titleOptions?.length ? data.titleOptions : [data.youtubeTitle || selectedTopic.topic]);
     } catch (err) {
       alert(`Script generation failed:\n\n${err.message}`);
+    } finally {
       setGenerating(false);
     }
-  }, [selectedTopic, style, format, speedMultiplier, narration, voice, startGeneration, router]);
+  }, [selectedTopic, genre, format]);
+
+  const handleStartWithTitle = useCallback((title) => {
+    startGeneration({
+      script: pendingScript.script || '',
+      style,
+      format,
+      speedMultiplier,
+      narration,
+      voice,
+      titleText: pendingScript.suggestedTitle || '',
+      youtubeTitle: title,
+      youtubeDescription: pendingScript.description || '',
+      youtubeTags: pendingScript.tags || [],
+    });
+    router.push('/video-creator/generations');
+  }, [pendingScript, style, format, speedMultiplier, narration, voice, startGeneration, router]);
 
   const handleGenerate = () => {
     if (!sceneList.length) return;
@@ -77,47 +98,100 @@ export default function VideoCreator() {
             <div className={styles.subtitle}>Auto-generate · Record · Upload</div>
           </div>
         </div>
-        <Link href="/video-creator/scheduler" className={styles.historyLink}>
-          Scheduler →
-        </Link>
+        <Link href="/video-creator/scheduler" className={styles.historyLink}>Scheduler →</Link>
       </header>
 
       <div className={styles.formBody}>
         {/* Auto-generate panel */}
         <div className={styles.autoPanel}>
           <div className={styles.autoPanelHeader}>
-            <div>
-              <div className={styles.autoPanelTitle}>⚡ Auto-Generate Script</div>
-              <div className={styles.autoPanelSub}>Pick a topic → one click → video starts generating automatically</div>
-            </div>
-            <Link href="/video-creator/scheduler" className={styles.scheduleLink}>View Schedule →</Link>
+            <div className={styles.autoPanelTitle}>⚡ Auto-Generate</div>
+            <Link href="/video-creator/scheduler" className={styles.scheduleLink}>Schedule →</Link>
           </div>
 
-          <div className={styles.topicRow}>
-            <select
-              className={styles.topicSelect}
-              value={selectedTopic.topic}
-              onChange={e => setSelectedTopic(FINANCE_TOPICS.find(t => t.topic === e.target.value) || FINANCE_TOPICS[0])}
-            >
-              {FINANCE_TOPICS.map(t => (
-                <option key={t.topic} value={t.topic}>{t.topic}</option>
+          {/* Genre */}
+          <div className={styles.autoSection}>
+            <div className={styles.autoLabel}>Genre</div>
+            <div className={styles.genreGrid}>
+              {GENRES.map(g => (
+                <button
+                  key={g.id}
+                  className={`${styles.genreBtn} ${genre === g.id ? styles.genreBtnActive : ''}`}
+                  onClick={() => handleGenreChange(g.id)}
+                >
+                  <span className={styles.genreLabel}>{g.label}</span>
+                  <span className={styles.genreDesc}>{g.desc}</span>
+                </button>
               ))}
-            </select>
-            <button className={styles.autoBtn} onClick={handleAutoGenerate} disabled={generating}>
-              {generating ? <><span className={styles.btnSpinner} /> Generating script…</> : '⚡ Auto Generate & Start'}
-            </button>
+            </div>
           </div>
 
-          {youtubeTitle && (
-            <div className={styles.ytMeta}>
-              <span className={styles.ytMetaLabel}>YouTube Title:</span>
-              <span className={styles.ytMetaValue}>{youtubeTitle}</span>
+          {/* Format */}
+          <div className={styles.autoSection}>
+            <div className={styles.autoLabel}>Format</div>
+            <div className={styles.formatToggle}>
+              {FORMATS.map(f => (
+                <button
+                  key={f.id}
+                  className={`${styles.formatToggleBtn} ${format === f.id ? styles.formatToggleBtnActive : ''}`}
+                  onClick={() => { setFormat(f.id); setPendingScript(null); setTitleOptions(null); }}
+                >
+                  {f.icon} {f.label}
+                  <span className={styles.formatHint}>{f.hint}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Topic + Generate */}
+          <div className={styles.autoSection}>
+            <div className={styles.autoLabel}>Topic</div>
+            <div className={styles.topicRow}>
+              <select
+                className={styles.topicSelect}
+                value={selectedTopic.topic}
+                onChange={e => {
+                  const found = topicsForGenre.find(t => t.topic === e.target.value);
+                  if (found) { setSelectedTopic(found); setPendingScript(null); setTitleOptions(null); }
+                }}
+              >
+                {topicsForGenre.map(t => (
+                  <option key={t.topic} value={t.topic}>{t.topic}</option>
+                ))}
+              </select>
+              <button className={styles.autoBtn} onClick={handleGenerateTitles} disabled={generating}>
+                {generating
+                  ? <><span className={styles.btnSpinner} /> Generating…</>
+                  : '✨ Generate Titles'}
+              </button>
+            </div>
+          </div>
+
+          {/* Title options — shown after generation */}
+          {titleOptions && (
+            <div className={styles.autoSection}>
+              <div className={styles.autoLabel}>Pick a title to use</div>
+              <div className={styles.titleOptions}>
+                {titleOptions.map((t, i) => (
+                  <button
+                    key={i}
+                    className={styles.titleOptionBtn}
+                    onClick={() => handleStartWithTitle(t)}
+                  >
+                    <span className={styles.titleOptionNum}>{i + 1}</span>
+                    <span className={styles.titleOptionText}>{t}</span>
+                    <span className={styles.titleOptionArrow}>▶</span>
+                  </button>
+                ))}
+              </div>
+              <div className={styles.titleOptionHint}>Tap a title to start generating the video</div>
             </div>
           )}
         </div>
 
+        {/* Manual script card */}
         <div className={styles.formCard}>
-          <div className={styles.sectionTitle}>Script</div>
+          <div className={styles.sectionTitle}>Manual Script</div>
           <input
             type="text"
             className={styles.titleInput}
@@ -140,21 +214,6 @@ export default function VideoCreator() {
           )}
 
           <div className={styles.settings}>
-            <div className={styles.settingRow}>
-              <label className={styles.settingLabel}>Format</label>
-              <div className={styles.formatGrid}>
-                {FORMATS.map(f => (
-                  <button key={f.id}
-                    className={`${styles.formatBtn} ${format === f.id ? styles.formatBtnActive : ''}`}
-                    onClick={() => setFormat(f.id)}>
-                    <span className={styles.formatIcon}>{f.icon}</span>
-                    <span className={styles.formatLabel}>{f.label}</span>
-                    <span className={styles.formatHint}>{f.hint}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
             <div className={styles.settingRow}>
               <label className={styles.settingLabel}>Visual Style</label>
               <div className={styles.styleGrid}>
