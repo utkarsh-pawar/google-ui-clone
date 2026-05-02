@@ -50,11 +50,12 @@ export async function POST(request) {
 - Total runtime: 30-45 seconds
 - Fast cuts, high energy`
     : `Format: YouTube Video (16:9 landscape)
-- 20-25 scenes total — build a full engaging story
-- N- lines: 2-3 complete sentences per scene, conversational storytelling tone
-- Total runtime: 3-5 minutes
-- Story arc required: Hook (2 scenes) → Setup/conflict (5 scenes) → Build tension (8 scenes) → Turning point (3 scenes) → Resolution/lesson (4 scenes) → Call to action (2 scenes)
-- Each scene should naturally flow into the next like chapters of a story`;
+- 30-35 scenes total — this is how you get length WITHOUT boring the viewer
+- N- lines: 1-2 short sentences per scene (max 20 words) — keep cuts frequent
+- Each scene is a new visual beat; NEVER let one image hold for more than 7 seconds
+- Total runtime: 3-5 minutes achieved through QUANTITY of scenes, not long holds
+- Story arc: Hook (3 scenes) → Setup (5 scenes) → Build tension (10 scenes) → Turning point (5 scenes) → Resolution (7 scenes) → CTA (2-3 scenes)
+- Each scene flows naturally into the next like chapters of a story`;
 
   const genreNote = GENRE_INSTRUCTIONS[genre] || GENRE_INSTRUCTIONS.finance;
 
