@@ -64,14 +64,104 @@ export const FINANCE_TOPICS = [
   { topic: 'How one skill changed this person\'s financial life forever', angle: 'side-income', genre: 'stories' },
 ];
 
+export const SPORTS_TOPICS = [
+  // F1
+  { topic: 'Why F1 is the fastest growing sport on the planet right now', angle: 'growth', genre: 'sports' },
+  { topic: 'Max Verstappen: the most dominant F1 driver in history?', angle: 'debate', genre: 'sports' },
+  { topic: 'Lewis Hamilton at Ferrari: can he win a record 8th world title?', angle: 'comeback', genre: 'sports' },
+  { topic: 'The F1 2025 season — who will take the championship?', angle: 'prediction', genre: 'sports' },
+  { topic: 'Why young fans around the world are going crazy for Formula 1', angle: 'culture', genre: 'sports' },
+  { topic: 'The greatest overtakes in F1 history — ranked', angle: 'highlights', genre: 'sports' },
+  { topic: 'McLaren vs Red Bull: the biggest F1 battle of 2025', angle: 'rivalry', genre: 'sports' },
+  { topic: 'Drive to Survive: how Netflix changed F1 forever', angle: 'culture', genre: 'sports' },
+  { topic: 'Lando Norris: is he ready to become F1 world champion?', angle: 'talent', genre: 'sports' },
+  { topic: 'The most controversial moments in Formula 1 history', angle: 'drama', genre: 'sports' },
+  { topic: 'Why Max Verstappen is already a legend — at just 27', angle: 'greatness', genre: 'sports' },
+  { topic: 'The F1 budget cap: did it make racing fairer or not?', angle: 'controversy', genre: 'sports' },
+  { topic: 'Ferrari vs Red Bull vs McLaren: the 2025 war for F1 dominance', angle: 'rivalry', genre: 'sports' },
+  { topic: 'Charles Leclerc: the most underrated driver on the F1 grid?', angle: 'debate', genre: 'sports' },
+  { topic: 'The fastest lap records in F1 that may never be broken', angle: 'records', genre: 'sports' },
+  // Cricket
+  { topic: 'Virat Kohli: the greatest comeback story in cricket history', angle: 'comeback', genre: 'sports' },
+  { topic: 'Why the IPL is now the richest cricket league in the world', angle: 'business', genre: 'sports' },
+  { topic: 'India vs Pakistan: why this cricket match still stops the world', angle: 'rivalry', genre: 'sports' },
+  { topic: 'Rohit Sharma: the best T20 captain of his generation?', angle: 'leadership', genre: 'sports' },
+  // Football
+  { topic: 'Cristiano Ronaldo vs Lionel Messi: who had the better career?', angle: 'debate', genre: 'sports' },
+];
+
+export const RELIGIOUS_TOPICS = [
+  { topic: 'What the Bhagavad Gita teaches about facing failure in life', angle: 'wisdom', genre: 'religious' },
+  { topic: 'Why Hanuman Chalisa has the power to change your life', angle: 'devotion', genre: 'religious' },
+  { topic: 'The story of Ram and Sita — what it teaches us today', angle: 'story', genre: 'religious' },
+  { topic: 'Morning prayer habits of people who never lose hope', angle: 'practice', genre: 'religious' },
+  { topic: 'Why Lord Shiva is called the destroyer — and why that is beautiful', angle: 'philosophy', genre: 'religious' },
+  { topic: 'What Karma really means — most people completely misunderstand it', angle: 'philosophy', genre: 'religious' },
+  { topic: 'The miracle stories of Char Dham that will restore your faith', angle: 'pilgrimage', genre: 'religious' },
+  { topic: 'How ancient meditation techniques are fighting modern anxiety', angle: 'practice', genre: 'religious' },
+  { topic: 'Why faith in God is the most powerful force in the universe', angle: 'inspiration', genre: 'religious' },
+  { topic: 'The hidden spiritual meaning behind Diwali most people miss', angle: 'festival', genre: 'religious' },
+  { topic: 'Swami Vivekananda: quotes that are still decades ahead of our time', angle: 'wisdom', genre: 'religious' },
+  { topic: 'Why the Mahabharata is the most relevant story for the modern world', angle: 'story', genre: 'religious' },
+  { topic: 'The power of gratitude in Hindu tradition — backed by science', angle: 'practice', genre: 'religious' },
+  { topic: 'How Navratri taught me the discipline that changed everything', angle: 'festival', genre: 'religious' },
+  { topic: 'Stories of devotees whose faith was rewarded in miraculous ways', angle: 'story', genre: 'religious' },
+  { topic: 'What Radha and Krishna\'s love story teaches us about devotion', angle: 'story', genre: 'religious' },
+  { topic: 'Why chanting mantras actually works — spiritually and scientifically', angle: 'practice', genre: 'religious' },
+  { topic: 'Lessons from Lord Ganesh on overcoming every obstacle in life', angle: 'wisdom', genre: 'religious' },
+];
+
+export const ALL_TOPICS = [...FINANCE_TOPICS, ...SPORTS_TOPICS, ...RELIGIOUS_TOPICS];
+
+export const CHANNEL_DEFINITIONS = [
+  {
+    id: 'general',
+    name: 'General Channel',
+    icon: '📺',
+    color: '#6366f1',
+    genres: ['motivation', 'finance', 'stories'],
+    desc: 'Finance, motivation & real stories — upload anything',
+  },
+  {
+    id: 'sports',
+    name: 'Sports Channel',
+    icon: '🏎️',
+    color: '#ef4444',
+    genres: ['sports'],
+    desc: 'F1, cricket, football & sports highlights',
+  },
+  {
+    id: 'religious',
+    name: 'Spiritual Channel',
+    icon: '🙏',
+    color: '#f59e0b',
+    genres: ['religious'],
+    desc: 'Faith, devotion & spiritual wisdom',
+  },
+];
+
 export const GENRES = [
   { id: 'motivation', label: '🔥 Motivation', desc: 'Mindset & breakthroughs' },
   { id: 'finance',    label: '💰 Finance',    desc: 'Numbers & strategies' },
   { id: 'stories',    label: '📖 Stories',    desc: 'Real journeys & lessons' },
+  { id: 'sports',     label: '🏆 Sports',     desc: 'F1, cricket & highlights' },
+  { id: 'religious',  label: '🙏 Spiritual',  desc: 'Faith & devotion' },
 ];
 
 export function getTopicsByGenre(genre) {
-  return FINANCE_TOPICS.filter(t => t.genre === genre);
+  return ALL_TOPICS.filter(t => t.genre === genre);
+}
+
+export function getTopicsByChannelId(channelId) {
+  const channel = CHANNEL_DEFINITIONS.find(c => c.id === channelId);
+  if (!channel) return FINANCE_TOPICS;
+  const topics = ALL_TOPICS.filter(t => channel.genres.includes(t.genre));
+  return topics.length ? topics : FINANCE_TOPICS;
+}
+
+export function getDefaultGenreForChannel(channelId) {
+  const channel = CHANNEL_DEFINITIONS.find(c => c.id === channelId);
+  return channel?.genres[0] || 'motivation';
 }
 
 export function getTodaysTopic() {

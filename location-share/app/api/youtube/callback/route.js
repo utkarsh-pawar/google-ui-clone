@@ -2,9 +2,10 @@ export async function GET(request) {
   const { searchParams, protocol, host } = new URL(request.url);
   const code = searchParams.get('code');
   const error = searchParams.get('error');
+  const channelId = searchParams.get('state') || 'general';
 
   if (error || !code) {
-    return new Response(`<html><body><h2>❌ Auth failed: ${error}</h2><a href="/video-creator/scheduler">Back</a></body></html>`,
+    return new Response(`<html><body><h2>❌ Auth failed: ${error}</h2><a href="/video-creator">Back</a></body></html>`,
       { headers: { 'Content-Type': 'text/html' } });
   }
 
@@ -37,13 +38,14 @@ export async function GET(request) {
 <body>
 <div style="font-size:48px">✅</div>
 <h2>YouTube Channel Connected!</h2>
-<p style="color:#94a3b8">Redirecting to scheduler…</p>
+<p style="color:#94a3b8">Redirecting…</p>
 <script>
+  const channelId = ${JSON.stringify(channelId)};
   const exp = Date.now() + ${data.expires_in || 3600} * 1000;
-  localStorage.setItem('yt_access_token', ${JSON.stringify(data.access_token)});
-  localStorage.setItem('yt_token_expiry', exp);
-  ${data.refresh_token ? `localStorage.setItem('yt_refresh_token', ${JSON.stringify(data.refresh_token)});` : ''}
-  setTimeout(() => { window.location = '/video-creator/scheduler'; }, 1500);
+  localStorage.setItem('yt_access_token_' + channelId, ${JSON.stringify(data.access_token)});
+  localStorage.setItem('yt_token_expiry_' + channelId, exp);
+  ${data.refresh_token ? `localStorage.setItem('yt_refresh_token_' + channelId, ${JSON.stringify(data.refresh_token)});` : ''}
+  setTimeout(() => { window.location = '/video-creator/' + channelId + '/scheduler'; }, 1500);
 </script>
 </body>
 </html>`;

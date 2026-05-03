@@ -76,7 +76,7 @@ export function GenerationProvider({ children }) {
 
   const startGeneration = useCallback(async ({
     script, style, format, language = 'en', speedMultiplier, narration, voice,
-    titleText, youtubeTitle, youtubeDescription, youtubeTags,
+    titleText, youtubeTitle, youtubeDescription, youtubeTags, channelId,
   }) => {
     abortRef.current = false;
     const rawScenes = splitScenes(script);
@@ -94,6 +94,7 @@ export function GenerationProvider({ children }) {
 
     setActive({
       id, title, style, format, language, speedMultiplier, narration, voice, titleText, rawScenes,
+      channelId: channelId || 'general',
       scenes: [...scenes],
       progress: { step: 'Generating images…', current: 0, total: rawScenes.length, background: true },
       status: 'generating',
@@ -203,6 +204,7 @@ export function GenerationProvider({ children }) {
 
       const done = {
         id, title, style, format, language, speedMultiplier, narration, voice, titleText, rawScenes,
+        channelId: channelId || 'general',
         scenes, status: 'done', videoUrl, youtubeTitle, youtubeDescription, youtubeTags,
         progress: { step: 'Done', current: scenes.length, total: scenes.length },
         createdAt: new Date().toISOString(),

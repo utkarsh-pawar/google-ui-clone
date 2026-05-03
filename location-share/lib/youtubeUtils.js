@@ -1,34 +1,41 @@
 'use client';
 
-const YT_TOKEN_KEY = 'yt_access_token';
-const YT_EXPIRY_KEY = 'yt_token_expiry';
-const YT_REFRESH_KEY = 'yt_refresh_token';
 const YT_HISTORY_KEY = 'yt_upload_history';
 
-export function getStoredToken() {
+function tokenKey(channelId) {
+  return channelId ? `yt_access_token_${channelId}` : 'yt_access_token';
+}
+function expiryKey(channelId) {
+  return channelId ? `yt_token_expiry_${channelId}` : 'yt_token_expiry';
+}
+function refreshKey(channelId) {
+  return channelId ? `yt_refresh_token_${channelId}` : 'yt_refresh_token';
+}
+
+export function getStoredToken(channelId) {
   if (typeof window === 'undefined') return null;
-  const token = localStorage.getItem(YT_TOKEN_KEY);
-  const expiry = Number(localStorage.getItem(YT_EXPIRY_KEY) || 0);
+  const token = localStorage.getItem(tokenKey(channelId));
+  const expiry = Number(localStorage.getItem(expiryKey(channelId)) || 0);
   if (!token || Date.now() > expiry - 60000) return null;
   return token;
 }
 
-export function isYouTubeConnected() {
+export function isYouTubeConnected(channelId) {
   if (typeof window === 'undefined') return false;
-  return !!getStoredToken() || !!localStorage.getItem(YT_REFRESH_KEY);
+  return !!getStoredToken(channelId) || !!localStorage.getItem(refreshKey(channelId));
 }
 
-export function disconnectYouTube() {
-  localStorage.removeItem(YT_TOKEN_KEY);
-  localStorage.removeItem(YT_EXPIRY_KEY);
-  localStorage.removeItem(YT_REFRESH_KEY);
+export function disconnectYouTube(channelId) {
+  localStorage.removeItem(tokenKey(channelId));
+  localStorage.removeItem(expiryKey(channelId));
+  localStorage.removeItem(refreshKey(channelId));
 }
 
-export async function getFreshToken() {
-  let token = getStoredToken();
+export async function getFreshToken(channelId) {
+  let token = getStoredToken(channelId);
   if (token) return token;
 
-  const refresh = localStorage.getItem(YT_REFRESH_KEY);
+  const refresh = localStorage.getItem(refreshKey(channelId));
   if (!refresh) throw new Error('YouTube not connected — please connect your channel first');
 
   const res = await fetch('/api/youtube/token', {
@@ -39,21 +46,20 @@ export async function getFreshToken() {
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Token refresh failed');
 
-  localStorage.setItem(YT_TOKEN_KEY, data.access_token);
-  localStorage.setItem(YT_EXPIRY_KEY, data.expiry);
+  localStorage.setItem(tokenKey(channelId), data.access_token);
+  localStorage.setItem(expiryKey(channelId), data.expiry);
   return data.access_token;
 }
 
-// Upload a video Blob directly to YouTube from the browser
-export async function uploadToYouTube({ videoBlob, title, description, tags = [] }) {
-  const accessToken = await getFreshToken();
+export async function uploadToYouTube({ videoBlob, title, description, tags = [], channelId }) {
+  const accessToken = await getFreshToken(channelId);
 
   const metadata = {
     snippet: {
       title: title.slice(0, 100),
       description,
       tags: tags.map(t => t.replace(/^#/, '')).slice(0, 15),
-      categoryId: '27', // Education
+      categoryId: '27',
       defaultLanguage: 'en',
     },
     status: {
@@ -62,7 +68,6 @@ export async function uploadToYouTube({ videoBlob, title, description, tags = []
     },
   };
 
-  // Step 1: Initiate resumable upload session
   const initRes = await fetch(
     'https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status',
     {
@@ -85,7 +90,6 @@ export async function uploadToYouTube({ videoBlob, title, description, tags = []
   const uploadUrl = initRes.headers.get('Location');
   if (!uploadUrl) throw new Error('No upload URL from YouTube');
 
-  // Step 2: Upload the video
   const uploadRes = await fetch(uploadUrl, {
     method: 'PUT',
     headers: {
@@ -104,14 +108,13 @@ export async function uploadToYouTube({ videoBlob, title, description, tags = []
   const videoId = result.id;
   const videoUrl = `https://www.youtube.com/shorts/${videoId}`;
 
-  // Save to local upload history
-  saveUploadHistory({ videoId, videoUrl, title, uploadedAt: new Date().toISOString() });
+  saveUploadHistory({ videoId, videoUrl, title, channelId, uploadedAt: new Date().toISOString() });
 
   return { videoId, videoUrl };
 }
 
-export async function uploadThumbnail(videoId, thumbnailBlob) {
-  const accessToken = await getFreshToken();
+export async function uploadThumbnail(videoId, thumbnailBlob, channelId) {
+  const accessToken = await getFreshToken(channelId);
   const res = await fetch(
     `https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=${videoId}&uploadType=media`,
     {
