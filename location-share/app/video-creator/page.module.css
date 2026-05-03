@@ -46,14 +46,33 @@
   width: 100%;
 }
 
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
 .sectionLabel {
   font-size: 11px;
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: 20px;
 }
+
+.addBtn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.addBtn:hover { opacity: 0.85; }
 
 /* Channel grid */
 .channelGrid {
@@ -191,32 +210,6 @@
   transition: all 0.15s;
 }
 .schedulerBtn:hover { color: var(--text); border-color: var(--muted); }
-
-/* Add channel card */
-.addCard {
-  background: transparent;
-  border: 2px dashed var(--border);
-  border-radius: 16px;
-  padding: 22px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  min-height: 200px;
-  color: var(--muted);
-}
-.addCard:hover {
-  border-color: var(--accent);
-  background: rgba(99,102,241,0.04);
-  color: var(--text);
-}
-
-.addIcon { font-size: 36px; font-weight: 300; color: var(--dim); }
-.addLabel { font-size: 15px; font-weight: 700; }
-.addDesc { font-size: 12px; color: var(--dim); text-align: center; }
 
 /* Add channel modal */
 .modalOverlay {

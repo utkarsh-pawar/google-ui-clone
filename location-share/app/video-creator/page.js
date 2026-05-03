@@ -79,7 +79,12 @@ export default function VideoCreatorLanding() {
       </header>
 
       <div className={styles.body}>
-        <div className={styles.sectionLabel}>Your Channels</div>
+        <div className={styles.sectionHeader}>
+          <div className={styles.sectionLabel}>Your Channels</div>
+          <button className={styles.addBtn} onClick={() => setShowAddModal(true)}>
+            + Add Channel
+          </button>
+        </div>
 
         <div className={styles.channelGrid}>
           {allChannels.map(ch => (
@@ -90,12 +95,6 @@ export default function VideoCreatorLanding() {
               onDelete={ch.custom ? () => handleDeleteChannel(ch.id) : null}
             />
           ))}
-
-          <button className={styles.addCard} onClick={() => setShowAddModal(true)}>
-            <span className={styles.addIcon}>+</span>
-            <span className={styles.addLabel}>Add Channel</span>
-            <span className={styles.addDesc}>Create a custom channel for any niche</span>
-          </button>
         </div>
       </div>
 
