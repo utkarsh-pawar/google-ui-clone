@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { CHANNEL_DEFINITIONS } from '@/lib/financeTopics';
-import { isYouTubeConnected } from '@/lib/youtubeUtils';
+import { isYouTubeConnected, disconnectYouTube } from '@/lib/youtubeUtils';
 import styles from './page.module.css';
 
 const CUSTOM_CHANNELS_KEY = 'vc_custom_channels';
@@ -93,6 +93,10 @@ export default function VideoCreatorLanding() {
               channel={ch}
               connected={ytStatus[ch.id] || false}
               onDelete={ch.custom ? () => handleDeleteChannel(ch.id) : null}
+              onDisconnect={() => {
+                disconnectYouTube(ch.id);
+                setYtStatus(s => ({ ...s, [ch.id]: false }));
+              }}
             />
           ))}
         </div>
@@ -159,7 +163,7 @@ export default function VideoCreatorLanding() {
   );
 }
 
-function ChannelCard({ channel, connected, onDelete }) {
+function ChannelCard({ channel, connected, onDelete, onDisconnect }) {
   return (
     <div className={styles.channelCard} style={{ '--ch-color': channel.color }}>
       <div className={styles.cardTop}>
@@ -176,9 +180,16 @@ function ChannelCard({ channel, connected, onDelete }) {
       </div>
 
       <div className={styles.cardStatus}>
-        <span className={`${styles.ytBadge} ${connected ? styles.ytConnected : styles.ytDisconnected}`}>
-          {connected ? '✅ YouTube Connected' : '⚪ YouTube Not Connected'}
-        </span>
+        {connected ? (
+          <div className={styles.ytConnectedRow}>
+            <span className={styles.ytBadge + ' ' + styles.ytConnected}>✅ YouTube Connected</span>
+            <button className={styles.disconnectBtn} onClick={onDisconnect}>Disconnect</button>
+          </div>
+        ) : (
+          <a href={`/api/youtube/auth?channelId=${channel.id}`} className={styles.ytConnectBtn}>
+            🔗 Connect YouTube
+          </a>
+        )}
       </div>
 
       <div className={styles.cardGenres}>
