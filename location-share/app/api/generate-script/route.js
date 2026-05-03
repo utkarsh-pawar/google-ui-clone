@@ -44,6 +44,7 @@ The viewer should never see a mismatch between the image and what they hear.
 SCENE WRITING RULES:
 - ONE thought per N- line. Max 12 words. One sentence, one moment.
 - S- must be ultra-specific, photorealistic, cinematic: person's appearance, action, setting, lighting, emotion.
+- SCENE 1 S- VISUAL RULE: MUST be an extreme close-up (face, hands, cash, phone screen, eyes). Include one of: "harsh backlight", "neon glow", "golden hour light", "dramatic shadow", "cinematic silhouette". NEVER a wide or establishing shot for Scene 1.
 - NEVER write a long N- line. Split it. Each split = new scene.
 - Use ₹ for all money amounts. Use exact numbers, not approximations.
 - Every N- line must either PROVOKE an emotion or REVEAL new information. No filler lines.
@@ -72,6 +73,7 @@ S- lines describe vivid cinematic sports scenes — cars, athletes, stadiums, cr
 SCENE WRITING RULES:
 - ONE moment per N- line. Max 12 words. Punchy, high-energy, present-tense where possible.
 - S- must be cinematic: athlete name, action, location, crowd, light, emotion. Make it feel LIVE.
+- SCENE 1 S- VISUAL RULE: MUST be extreme close-up — athlete's eyes, hands gripping wheel/bat, sweat on face. Include one of: "harsh backlight", "stadium floodlight rim lighting", "golden hour", "dramatic shadow". NEVER a wide or crowd shot for Scene 1.
 - Use real names, team colors, track names, season references.
 - Every line must either ESCALATE tension or DROP a jaw-dropping stat/fact.
 - Build to one unmissable moment — the overtake, the record, the GOAT decision.
@@ -94,6 +96,7 @@ S- lines describe divine, sacred, emotionally resonant scenes — temples, deiti
 SCENE WRITING RULES:
 - ONE spiritual thought per N- line. Max 12 words. Calm but emotionally powerful.
 - S- must be visually stunning: deity, setting, colors, sacred atmosphere, golden light.
+- SCENE 1 S- VISUAL RULE: MUST be extreme close-up — devotee's tear-filled eyes, praying hands, deity face in golden light, or flame in darkness. Include one of: "divine golden backlight", "temple lamp glow", "soft dawn light", "dramatic shadow and flame". NEVER a wide temple shot for Scene 1.
 - Narration feels like a wise elder or a prayer — never preachy, always moving.
 - Connect ancient wisdom directly to a modern problem the viewer faces TODAY.
 - Every scene should make the viewer feel either PEACE, AWE, or HOPE.

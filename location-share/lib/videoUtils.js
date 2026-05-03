@@ -62,10 +62,11 @@ export function sceneDurationFromText(text, multiplier = 1) {
   return Math.round(base * multiplier * 10) / 10;
 }
 
-export function makeImagePrompt(text, styleSuffix, format = FORMATS[0]) {
+export function makeImagePrompt(text, styleSuffix, format = FORMATS[0], isHook = false) {
   const cleaned = text.replace(/[^\w\s,]/g, ' ').slice(0, 200);
   const aspect = format.id === 'portrait' ? '9:16 aspect ratio, vertical composition, portrait orientation' : '16:9 aspect ratio';
-  return `${cleaned}, ${styleSuffix}, ${aspect}, high quality`;
+  const hookMod = isHook ? ', extreme close-up, dramatic lighting, high contrast, cinematic tension, sharp focus' : '';
+  return `${cleaned}, ${styleSuffix}${hookMod}, ${aspect}, high quality`;
 }
 
 // Routes through our server. idx used to alternate between sources for rate-limit cooldown.
@@ -243,14 +244,35 @@ export async function fetchSceneAudio(text, voice = 'Brian', lang = 'en') {
   }
 }
 
+// Cinematic vignette — darkens edges for all scenes
+function drawVignette(ctx, W, H) {
+  const grad = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.8);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.52)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+}
+
+// Warm urgency tint — applied only on hook scene (scene 0)
+function drawHookGrade(ctx, W, H) {
+  ctx.fillStyle = 'rgba(220,55,0,0.07)';
+  ctx.fillRect(0, 0, W, H);
+  const grad = ctx.createLinearGradient(0, H * 0.65, 0, H);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.3)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+}
+
 // progress: 0→1 within the scene — drives subtitle slide-up + fade-in
-function drawSubtitle(ctx, text, W, H, progress = 1) {
+function drawSubtitle(ctx, text, W, H, progress = 1, isHook = false) {
   const padding = 48;
-  const fontSize = W < 900 ? 38 : 34;
+  const fontSize = isHook ? (W < 900 ? 44 : 40) : (W < 900 ? 38 : 34);
+  const fontWeight = isHook ? '700' : '600';
   const maxWidth = W - padding * 2;
   const lineHeight = fontSize * 1.5;
 
-  ctx.font = `600 ${fontSize}px 'Noto Sans Devanagari', 'Mangal', -apple-system, BlinkMacSystemFont, sans-serif`;
+  ctx.font = `${fontWeight} ${fontSize}px 'Noto Sans Devanagari', 'Mangal', -apple-system, BlinkMacSystemFont, sans-serif`;
   ctx.textAlign = 'center';
 
   const words = text.split(' ');
@@ -265,10 +287,9 @@ function drawSubtitle(ctx, text, W, H, progress = 1) {
   const display = lines.slice(0, 3);
 
   const totalH = display.length * lineHeight + 32;
-  // slide up from 20px below its resting position
   const slideOffset = Math.round((1 - Math.min(progress * 4, 1)) * 20);
   const y = H - totalH - 24 + slideOffset;
-  const alpha = Math.min(progress * 5, 1); // fade in fast at scene start
+  const alpha = Math.min(progress * 5, 1);
 
   ctx.save();
   ctx.globalAlpha = alpha * 0.78;
@@ -282,14 +303,16 @@ function drawSubtitle(ctx, text, W, H, progress = 1) {
   ctx.restore();
 }
 
-function drawTitle(ctx, text, W, H) {
+// Cinematic hook title — centered stroke text, positioned in upper-center of frame
+function drawHookTitle(ctx, text, W, H) {
   if (!text) return;
-  const fontSize = W < 900 ? 46 : 40;
-  const padding = 48;
+  const fontSize = W < 900 ? 52 : 46;
+  const padding = 52;
   const maxWidth = W - padding * 2;
-  const lineHeight = fontSize * 1.35;
+  const lineHeight = fontSize * 1.25;
 
-  ctx.font = `800 ${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
+  ctx.save();
+  ctx.font = `900 ${fontSize}px -apple-system, BlinkMacSystemFont, 'Arial Black', sans-serif`;
   ctx.textAlign = 'center';
 
   const words = text.split(' ');
@@ -301,20 +324,23 @@ function drawTitle(ctx, text, W, H) {
     else line = test;
   }
   if (line) lines.push(line);
-  const display = lines.slice(0, 2);
+  const display = lines.slice(0, 3);
 
-  const totalH = display.length * lineHeight + 20;
-  const y = 28;
+  const totalTextH = display.length * lineHeight;
+  const topY = H * 0.28 - totalTextH / 2;
 
-  ctx.globalAlpha = 0.72;
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, W, totalH + y + 8);
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = '#fff';
-  ctx.shadowColor = 'rgba(0,0,0,0.9)';
-  ctx.shadowBlur = 10;
-  display.forEach((l, idx) => ctx.fillText(l, W / 2, y + fontSize + idx * lineHeight));
-  ctx.shadowBlur = 0;
+  // Thick black stroke for legibility against any background
+  ctx.strokeStyle = 'rgba(0,0,0,0.92)';
+  ctx.lineWidth = Math.round(fontSize * 0.14);
+  ctx.lineJoin = 'round';
+  display.forEach((l, idx) => ctx.strokeText(l, W / 2, topY + fontSize + idx * lineHeight));
+
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = 'rgba(0,0,0,0.85)';
+  ctx.shadowBlur = 20;
+  display.forEach((l, idx) => ctx.fillText(l, W / 2, topY + fontSize + idx * lineHeight));
+
+  ctx.restore();
 }
 
 // sceneDurations: number (uniform) or number[] (per-scene). audioBuffers: ArrayBuffer[]|null[]
@@ -375,6 +401,8 @@ export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffe
     [1.06, 1.08,  0.01, -0.01,  0.01, -0.01 ], // zoom in + drift up-left
     [1.08, 1.05, -0.01,  0.01, -0.01,  0.01 ], // zoom out + drift down-right
   ];
+  // Hook scene gets an aggressive zoom-in with slight drift — creates tension
+  const HOOK_KB = [1.00, 1.15, 0.007, -0.007, 0.004, -0.004];
 
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i];
@@ -392,7 +420,7 @@ export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffe
     const fadeFrames = Math.floor((FADE_MS / 1000) * FPS);
     const holdFrames = Math.floor((HOLD_MS / 1000) * FPS);
     const totalFrames = (fadeFrames + 1) * 2 + holdFrames;
-    const [s0, s1, x0, x1, y0, y1] = KB_EFFECTS[i % KB_EFFECTS.length];
+    const [s0, s1, x0, x1, y0, y1] = i === 0 ? HOOK_KB : KB_EFFECTS[i % KB_EFFECTS.length];
     let sceneFrame = 0;
 
     // Start video clip playing if this scene has one
@@ -432,6 +460,10 @@ export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffe
         ctx.fillRect(0, 0, W, H);
       }
 
+      // Cinematic post-processing (before fade so they dissolve with the scene)
+      drawVignette(ctx, W, H);
+      if (i === 0) drawHookGrade(ctx, W, H);
+
       // Black fade overlay between scenes
       ctx.globalAlpha = 1 - alpha;
       ctx.fillStyle = '#000';
@@ -439,8 +471,8 @@ export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffe
       ctx.globalAlpha = 1;
 
       // Subtitle with slide-up animation (p = scene progress 0→1)
-      drawSubtitle(ctx, scene.narration || scene.text || '', W, H, p);
-      if (i === 0 && scriptTitle) drawTitle(ctx, scriptTitle, W, H);
+      drawSubtitle(ctx, scene.narration || scene.text || '', W, H, p, i === 0);
+      if (i === 0 && scriptTitle) drawHookTitle(ctx, scriptTitle, W, H);
       sceneFrame++;
     };
 
