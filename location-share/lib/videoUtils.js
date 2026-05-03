@@ -23,6 +23,18 @@ export const TTS_VOICES = [
   { id: 'Joey', label: 'Joey (US Male)' },
 ];
 
+// Characters that map to male voices
+const MALE_CHARS = new Set(['ramesh','ram','suresh','mohan','rajesh','raj','papa','father','baba','dada','beta','anil','rahul','vikram','arjun','ravi','deepak','ajay','amit','nikhil','rohit','vivek']);
+// Characters that map to female voices
+const FEMALE_CHARS = new Set(['sunita','sita','seema','mama','mother','priya','anita','meena','kavita','pooja','didi','rani','devi','nani','rekha','geeta','neha','ritu','kavya','lalita']);
+
+export function getCharacterGender(character) {
+  const lc = (character || '').toLowerCase().trim();
+  if (MALE_CHARS.has(lc)) return 'male';
+  if (FEMALE_CHARS.has(lc)) return 'female';
+  return 'narrator';
+}
+
 export function splitScenes(script) {
   const hasFormat = /^[SsNn]-/m.test(script);
 
@@ -32,25 +44,37 @@ export function splitScenes(script) {
       .split(/\n\n+/)
       .map(s => s.trim())
       .filter(s => s.length > 2)
-      .map(text => ({ scenePrompt: text, narration: text }));
+      .map(text => ({ scenePrompt: text, narration: text, character: '' }));
   }
 
-  // S- line = image generation prompt, N- line = TTS narration + subtitle
+  // S- line = image generation prompt
+  // N- line = TTS narration + subtitle (optionally tagged: N-[character] text)
   const scenes = [];
   let scenePrompt = '';
   let narration = '';
+  let character = '';
 
   for (const line of script.split('\n')) {
     const t = line.trim();
     if (/^[Ss]-\s*/i.test(t)) {
-      if (scenePrompt) scenes.push({ scenePrompt, narration: narration || scenePrompt });
+      if (scenePrompt) scenes.push({ scenePrompt, narration: narration || scenePrompt, character });
       scenePrompt = t.replace(/^[Ss]-\s*/i, '').trim();
       narration = '';
+      character = '';
     } else if (/^[Nn]-\s*/i.test(t)) {
-      narration = t.replace(/^[Nn]-\s*/i, '').trim();
+      const raw = t.replace(/^[Nn]-\s*/i, '').trim();
+      // N-[character] text OR N- text
+      const charMatch = raw.match(/^\[([^\]]+)\]\s*([\s\S]*)/);
+      if (charMatch) {
+        character = charMatch[1].toLowerCase().trim();
+        narration = charMatch[2].trim();
+      } else {
+        character = '';
+        narration = raw;
+      }
     }
   }
-  if (scenePrompt) scenes.push({ scenePrompt, narration: narration || scenePrompt });
+  if (scenePrompt) scenes.push({ scenePrompt, narration: narration || scenePrompt, character });
 
   return scenes.filter(s => s.scenePrompt.length > 0);
 }
@@ -62,11 +86,25 @@ export function sceneDurationFromText(text, multiplier = 1) {
   return Math.round(base * multiplier * 10) / 10;
 }
 
-export function makeImagePrompt(text, styleSuffix, format = FORMATS[0], isHook = false) {
+// Visual hints appended when a named character is speaking — steers AI toward character scenes
+const CHARACTER_APPEARANCE = {
+  ramesh:  'Indian man 40s, tired weathered face, worn kurta, poor household setting',
+  sunita:  'Indian woman 35, simple cotton saree, strong determined expression',
+  priya:   'Indian girl 10 years, school uniform, bright curious eyes',
+  raja:    'Indian man 50s, dhoti kurta, simple rural setting',
+  sita:    'Indian woman 40s, simple saree, traditional household',
+};
+
+export function makeImagePrompt(text, styleSuffix, format = FORMATS[0], isHook = false, character = '') {
   const cleaned = text.replace(/[^\w\s,]/g, ' ').slice(0, 200);
   const aspect = format.id === 'portrait' ? '9:16 aspect ratio, vertical composition, portrait orientation' : '16:9 aspect ratio';
   const hookMod = isHook ? ', extreme close-up, dramatic lighting, high contrast, cinematic tension, sharp focus' : '';
-  return `${cleaned}, ${styleSuffix}${hookMod}, ${aspect}, high quality`;
+  const charDesc = character && CHARACTER_APPEARANCE[character.toLowerCase()]
+    ? `, ${CHARACTER_APPEARANCE[character.toLowerCase()]}, digital illustration warm colors, character interaction scene`
+    : character && !isHook
+      ? ', character dialogue scene, digital illustration style, warm colors, expressive faces'
+      : '';
+  return `${cleaned}${charDesc}, ${styleSuffix}${hookMod}, ${aspect}, high quality`;
 }
 
 // Routes through our server. idx used to alternate between sources for rate-limit cooldown.
@@ -234,9 +272,11 @@ export async function processInBatches(items, processor, {
   return results;
 }
 
-export async function fetchSceneAudio(text, voice = 'Brian', lang = 'en') {
+export async function fetchSceneAudio(text, voice = 'Brian', lang = 'en', character = '') {
   try {
-    const res = await fetch(`/api/tts?voice=${voice}&lang=${lang}&text=${encodeURIComponent(text.slice(0, 400))}`);
+    const res = await fetch(
+      `/api/tts?voice=${voice}&lang=${lang}&text=${encodeURIComponent(text.slice(0, 400))}&character=${encodeURIComponent(character)}`
+    );
     if (!res.ok) return null;
     return await res.arrayBuffer();
   } catch {
