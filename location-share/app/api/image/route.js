@@ -1,5 +1,6 @@
 export const maxDuration = 60;
 
+const COLAB_URL    = process.env.COLAB_IMAGE_URL;   // e.g. https://xxxx.ngrok-free.app
 const UNSPLASH_KEY = process.env.UNSPLASH_ACCESS_KEY;
 const PEXELS_KEY   = process.env.PEXELS_API_KEY;
 const PIXABAY_KEY  = process.env.PIXABAY_API_KEY;
@@ -21,6 +22,31 @@ function toSearchQuery(prompt) {
     .join(' ') || 'nature';
 }
 
+// PRIMARY: Colab SDXL server — real AI images matching exact scene descriptions
+async function fetchColab(prompt, width, height) {
+  if (!COLAB_URL) throw new Error('No Colab URL configured');
+  const res = await fetch(`${COLAB_URL}/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt, width, height, steps: 25 }),
+    signal: AbortSignal.timeout(55000),
+  });
+  if (!res.ok) throw new Error(`Colab ${res.status}`);
+  return { buffer: await res.arrayBuffer(), credit: null };
+}
+
+// SECONDARY AI: Pollinations — free AI, no key needed, slower and less reliable
+async function fetchPollinations(prompt, width, height) {
+  const seed = Math.floor(Math.random() * 99999);
+  const res = await fetch(
+    `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${width}&height=${height}&nologo=true&seed=${seed}`,
+    { signal: AbortSignal.timeout(45000) }
+  );
+  if (!res.ok) throw new Error(`Pollinations ${res.status}`);
+  return { buffer: await res.arrayBuffer(), credit: null };
+}
+
+// STOCK FALLBACKS — only used when AI sources are unavailable
 async function fetchUnsplash(prompt, width, height) {
   const orientation = height > width ? 'portrait' : 'landscape';
   const query = toSearchQuery(prompt);
@@ -69,7 +95,6 @@ async function fetchPixabay(prompt, width, height) {
   return { buffer: await imgRes.arrayBuffer(), credit: `${photo.user} on Pixabay` };
 }
 
-// Fast, free, no API key — real photos from Unsplash CDN via Picsum
 async function fetchPicsum(prompt, width, height, idx) {
   const seed = Math.abs(idx * 97 + prompt.charCodeAt(0) * 13) % 1000;
   const res = await fetch(`https://picsum.photos/seed/${seed}/${width}/${height}`, { signal: AbortSignal.timeout(10000) });
@@ -77,17 +102,6 @@ async function fetchPicsum(prompt, width, height, idx) {
   return { buffer: await res.arrayBuffer(), credit: 'Lorem Picsum' };
 }
 
-async function fetchPollinations(prompt, width, height) {
-  const seed = Math.floor(Math.random() * 99999);
-  const res = await fetch(
-    `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${width}&height=${height}&nologo=true&seed=${seed}`,
-    { signal: AbortSignal.timeout(45000) }
-  );
-  if (!res.ok) throw new Error(`Pollinations ${res.status}`);
-  return { buffer: await res.arrayBuffer(), credit: null };
-}
-
-// SVG placeholder — never fails, used as last resort
 function makePlaceholder(width, height, idx) {
   const colors = ['#1a1a2e','#16213e','#0f3460','#1b1b2f'];
   const bg = colors[idx % colors.length];
@@ -99,19 +113,22 @@ function makePlaceholder(width, height, idx) {
 }
 
 function getSources(idx) {
-  const pool = [];
-  if (UNSPLASH_KEY) pool.push((p, w, h) => fetchUnsplash(p, w, h));
-  if (PEXELS_KEY)   pool.push((p, w, h) => fetchPexels(p, w, h));
-  if (PIXABAY_KEY)  pool.push((p, w, h) => fetchPixabay(p, w, h));
+  const stockPool = [];
+  if (UNSPLASH_KEY) stockPool.push((p, w, h) => fetchUnsplash(p, w, h));
+  if (PEXELS_KEY)   stockPool.push((p, w, h) => fetchPexels(p, w, h));
+  if (PIXABAY_KEY)  stockPool.push((p, w, h) => fetchPixabay(p, w, h));
 
-  const rotated = pool.length
-    ? [...pool.slice(idx % pool.length), ...pool.slice(0, idx % pool.length)]
+  const rotatedStock = stockPool.length
+    ? [...stockPool.slice(idx % stockPool.length), ...stockPool.slice(0, idx % stockPool.length)]
     : [];
 
   return [
-    ...rotated,
-    (p, w, h) => fetchPicsum(p, w, h, idx),  // fast free fallback
-    (p, w, h) => fetchPollinations(p, w, h),  // slow AI fallback
+    // AI sources first — images match the exact scene description
+    (p, w, h) => fetchColab(p, w, h),
+    (p, w, h) => fetchPollinations(p, w, h),
+    // Stock photos as fallback only
+    ...rotatedStock,
+    (p, w, h) => fetchPicsum(p, w, h, idx),
   ];
 }
 
@@ -135,7 +152,6 @@ export async function GET(request) {
     }
   }
 
-  // Absolute last resort: SVG placeholder — never returns 502
   const placeholder = makePlaceholder(width, height, idx);
   return new Response(placeholder, { headers: { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=3600' } });
 }
