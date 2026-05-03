@@ -1,7 +1,7 @@
 export const maxDuration = 30;
 export const runtime = 'nodejs';
 
-const BASE_SYSTEM = `You are a viral YouTube scriptwriter for a finance channel targeting young Indians aged 18-30.
+const FINANCE_SYSTEM = `You are a viral YouTube scriptwriter for a finance channel targeting young Indians aged 18-30.
 
 CORE RULE — visual-narration sync:
 Every S- image must SHOW exactly what the N- line SAYS.
@@ -32,6 +32,58 @@ N- He had ₹3,000 left, rent was ₹8,000 due, and he had just received his thi
 
 Always respond with valid JSON only. No markdown, no explanation.`;
 
+const SPORTS_SYSTEM = `You are a viral YouTube scriptwriter for a sports channel targeting fans aged 16-35.
+
+CORE RULE — visual-narration sync:
+Every S- image must SHOW exactly what the N- line SAYS.
+S- lines describe vivid sports scenes: race cars, stadiums, athletes, dramatic moments.
+The viewer should never see a mismatch between what they see and hear.
+
+SCENE STRUCTURE RULES:
+- ONE moment per N- line. Max 12 words. High energy, punchy.
+- S- must be vivid and cinematic: include athlete, action, setting, crowd, lighting.
+- For F1: include car details, track name, speed, team colors.
+- Use real athlete names, team names, and current season references.
+- Build tension — use stats, records, rivalries.
+
+GOOD EXAMPLE:
+S- Max Verstappen's Red Bull RB20 blasting through Eau Rouge at Spa, low angle, sparks flying, crowd roaring
+N- He took the lead. 3 laps to go.
+
+S- Close-up of Lando Norris in McLaren cockpit, focused eyes, sweat, rain on visor
+N- One mistake. That is all it takes.
+
+Always respond with valid JSON only. No markdown, no explanation.`;
+
+const RELIGIOUS_SYSTEM = `You are a devotional YouTube scriptwriter creating spiritual content for Indian audiences.
+
+CORE RULE — visual-narration sync:
+Every S- image must SHOW exactly what the N- line SAYS.
+S- lines describe divine scenes, temples, devotees, sacred moments, ancient stories.
+Every scene must feel peaceful, sacred, and emotionally moving.
+
+SCENE STRUCTURE RULES:
+- ONE spiritual thought per N- line. Max 12 words. Calm, profound, devotional.
+- S- must be vivid: describe the deity, setting, colors, atmosphere, light.
+- Use imagery from Hindu temples, scriptures, festivals, nature.
+- Narration should feel like a prayer or a wise elder speaking.
+- Avoid anything controversial — stay respectful and universal.
+
+GOOD EXAMPLE:
+S- Golden idol of Lord Ganesh adorned with marigolds, oil lamp flickering, incense smoke curling, soft morning light
+N- Before every beginning, we bow to the remover of obstacles.
+
+S- Devotee's folded hands in prayer at a riverside temple, sunrise, eyes closed, serene expression
+N- Faith is not seen. It is felt.
+
+Always respond with valid JSON only. No markdown, no explanation.`;
+
+function getBaseSystem(genre) {
+  if (genre === 'sports') return SPORTS_SYSTEM;
+  if (genre === 'religious') return RELIGIOUS_SYSTEM;
+  return FINANCE_SYSTEM;
+}
+
 const GENRE_INSTRUCTIONS = {
   motivation: `Genre: MOTIVATIONAL. Focus on:
 - Emotional hooks and mindset breakthroughs
@@ -50,7 +102,31 @@ const GENRE_INSTRUCTIONS = {
 - Structure: struggle → turning point → transformation
 - Emotional narrative with financial lessons woven in
 - Titles that name a character or use "I/my" for relatability`,
+
+  sports: `Genre: SPORTS. Focus on:
+- High-energy sports moments, rivalries, and records
+- Stats, iconic performances, and dramatic turning points
+- Athlete psychology, pressure, and greatness
+- Titles that spark debate or tell the biggest sports stories
+- Current 2025 season references for F1 where relevant`,
+
+  religious: `Genre: SPIRITUAL/DEVOTIONAL. Focus on:
+- Stories and wisdom from Hindu scriptures and traditions
+- Practical spiritual lessons for modern life
+- Emotional, inspiring narratives about faith and transformation
+- Titles that resonate deeply with devotees
+- Respectful, uplifting tone — never divisive`,
 };
+
+const SPORTS_TAGS = ['#f1', '#formula1', '#sports', '#shorts', '#cricket', '#ipl', '#f12025', '#sportsnews', '#racing', '#motorsport'];
+const RELIGIOUS_TAGS = ['#bhagavadgita', '#spiritual', '#devotional', '#hindu', '#shorts', '#faith', '#meditation', '#hanumanchalisa', '#blessings', '#godisgreat'];
+const FINANCE_TAGS = ['#personalfinance', '#moneytips', '#shorts', '#financetips', '#moneyadvice', '#wealthbuilding', '#indianfinance', '#financialfreedom', '#moneymindset', '#investing'];
+
+function getDefaultTags(genre) {
+  if (genre === 'sports') return SPORTS_TAGS;
+  if (genre === 'religious') return RELIGIOUS_TAGS;
+  return FINANCE_TAGS;
+}
 
 export async function POST(request) {
   const { topic, angle, genre = 'finance', format = 'portrait', language = 'en' } = await request.json();
@@ -75,6 +151,7 @@ export async function POST(request) {
 - Each scene flows naturally into the next like chapters of a story`;
 
   const genreNote = GENRE_INSTRUCTIONS[genre] || GENRE_INSTRUCTIONS.finance;
+  const defaultTags = getDefaultTags(genre);
 
   const langNote = language === 'hi'
     ? `Language: HINDI (हिंदी)
@@ -84,10 +161,11 @@ export async function POST(request) {
 - Use conversational Hindi that young Indians actually speak — mix Hindi + some English words naturally (Hinglish is fine for N- lines).`
     : `Language: English`;
 
-  const systemPrompt = `${BASE_SYSTEM}\n\n${genreNote}`;
+  const baseSystem = getBaseSystem(genre);
+  const systemPrompt = `${baseSystem}\n\n${genreNote}`;
 
   const userPrompt = `Create a viral YouTube script about: "${topic}"
-Angle: ${angle || 'motivational'}
+Angle: ${angle || 'engaging'}
 ${formatNote}
 ${langNote}
 
@@ -102,7 +180,7 @@ Return JSON only:
   "suggestedTitle": "Bold 6-8 word overlay title for first scene",
   "youtubeTitle": "Best of the 3 title options (under 60 chars with emoji)",
   "description": "3-line YouTube description with hook, value, and CTA. Include relevant hashtags at end.",
-  "tags": ["#personalfinance", "#moneytips", "#shorts", "#financetips", "#moneyadvice", "#wealthbuilding", "#indianfinance", "#financialfreedom", "#moneymindset", "#investing"]
+  "tags": ${JSON.stringify(defaultTags)}
 }`;
 
   try {
@@ -136,7 +214,6 @@ Return JSON only:
     const raw = data.choices?.[0]?.message?.content?.trim() || '';
     const parsed = JSON.parse(raw);
 
-    // Ensure titleOptions is always an array of 3
     if (!Array.isArray(parsed.titleOptions) || parsed.titleOptions.length === 0) {
       parsed.titleOptions = [parsed.youtubeTitle || topic];
     }

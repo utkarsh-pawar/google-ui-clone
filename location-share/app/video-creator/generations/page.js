@@ -24,6 +24,7 @@ function VideoPlayer({ src }) {
 }
 
 function ThumbnailPanel({ active, uploadedVideoId }) {
+  const channelId = active?.channelId || 'general';
   const [thumbUrl, setThumbUrl] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -52,7 +53,7 @@ function ThumbnailPanel({ active, uploadedVideoId }) {
     try {
       const res = await fetch(thumbUrl);
       const blob = await res.blob();
-      await uploadThumbnail(uploadedVideoId, blob);
+      await uploadThumbnail(uploadedVideoId, blob, channelId);
       setUploaded(true);
     } catch (e) {
       setError(e.message);
@@ -92,28 +93,28 @@ function ThumbnailPanel({ active, uploadedVideoId }) {
 }
 
 function UploadButton({ active, onUploaded }) {
+  const channelId = active?.channelId || 'general';
   const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState(null);
   const [error, setError] = useState(null);
   const [ytConnected, setYtConnected] = useState(false);
-  const [progress, setProgress] = useState(null);
 
-  useEffect(() => { setYtConnected(isYouTubeConnected()); }, []);
+  useEffect(() => { setYtConnected(isYouTubeConnected(channelId)); }, [channelId]);
 
   const handleUpload = useCallback(async () => {
     if (!active?.videoUrl) return;
     setUploading(true);
     setError(null);
     try {
-      // Get the video blob from the blob URL
       const res = await fetch(active.videoUrl);
       const videoBlob = await res.blob();
 
       const { videoId, videoUrl } = await uploadToYouTube({
         videoBlob,
-        title: active.youtubeTitle || active.titleText || active.title || 'Finance Short',
-        description: active.youtubeDescription || 'Follow for daily finance tips.',
-        tags: active.youtubeTags || ['#personalfinance', '#moneytips', '#shorts'],
+        title: active.youtubeTitle || active.titleText || active.title || 'Video Short',
+        description: active.youtubeDescription || 'Follow for more content.',
+        tags: active.youtubeTags || ['#shorts'],
+        channelId,
       });
       setUploaded({ videoId, videoUrl });
       onUploaded?.(videoId);
@@ -122,7 +123,7 @@ function UploadButton({ active, onUploaded }) {
     } finally {
       setUploading(false);
     }
-  }, [active]);
+  }, [active, channelId]);
 
   if (uploaded) {
     return (
@@ -134,7 +135,7 @@ function UploadButton({ active, onUploaded }) {
 
   if (!ytConnected) {
     return (
-      <a href="/api/youtube/auth" className={styles.ytConnectBtn}>
+      <a href={`/api/youtube/auth?channelId=${channelId}`} className={styles.ytConnectBtn}>
         🔗 Connect YouTube to Upload
       </a>
     );
