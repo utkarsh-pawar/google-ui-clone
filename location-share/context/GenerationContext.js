@@ -130,7 +130,7 @@ export function GenerationProvider({ children }) {
         // Fall back to static image if no video
         let img = null;
         if (!videoUrl) {
-          const imgPrompt = makeImagePrompt(scene.scenePrompt, selectedStyle.suffix, selectedFormat);
+          const imgPrompt = makeImagePrompt(scene.scenePrompt, selectedStyle.suffix, selectedFormat, idx === 0);
           img = await fetchImage(pollinationsUrl(imgPrompt, selectedFormat.width, selectedFormat.height, idx), 3);
         }
 
