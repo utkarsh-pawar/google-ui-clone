@@ -208,6 +208,7 @@ export function GenerationProvider({ children }) {
         (current, total) => setActive(a => ({ ...a, progress: { step: 'Recording video…', current, total } })),
         audioBuffers, selectedFormat, titleText || '',
         selectedStyle.subtitleStyle || 'bar',
+        style,
       );
 
       const done = {

@@ -9,12 +9,13 @@ export const FORMATS = [
 ];
 
 export const STYLES = [
-  { id: 'comic',       label: '🎨 Comic',       suffix: 'comic book illustration, thick black outlines, exaggerated cartoon expressions, vibrant colors, animated TV series art style, dynamic pose, detailed background, Marvel comic style', subtitleStyle: 'karaoke' },
-  { id: 'cinematic',   label: 'Cinematic',      suffix: 'cinematic photography, dramatic lighting, film grain, professional', subtitleStyle: 'bar' },
-  { id: 'realistic',   label: 'Realistic',      suffix: 'photorealistic, high resolution, detailed, sharp', subtitleStyle: 'bar' },
-  { id: 'illustrated', label: 'Illustrated',    suffix: 'digital illustration, vibrant colors, artistic, detailed artwork', subtitleStyle: 'bar' },
-  { id: 'documentary', label: 'Documentary',    suffix: 'documentary photography, real, authentic, natural lighting', subtitleStyle: 'bar' },
-  { id: 'abstract',    label: 'Abstract',       suffix: 'abstract art, colorful, modern design, visual metaphor', subtitleStyle: 'bar' },
+  { id: 'comic',     label: '🎨 Comic',     suffix: 'comic book illustration, thick black outlines, exaggerated cartoon expressions, vibrant colors, animated TV series art style, dynamic pose, detailed background, Marvel comic style', subtitleStyle: 'karaoke' },
+  { id: 'sketch',    label: '✏️ Sketch',    suffix: 'hand-drawn pencil sketch illustration, rough expressive line art, minimalist black and white drawing on white paper, quick gesture strokes, whiteboard animation style, simple but expressive stickman and character sketches, hand-drawn feel, bold marker outlines', subtitleStyle: 'karaoke' },
+  { id: 'cinematic', label: 'Cinematic',    suffix: 'cinematic photography, dramatic lighting, film grain, professional', subtitleStyle: 'bar' },
+  { id: 'realistic', label: 'Realistic',    suffix: 'photorealistic, high resolution, detailed, sharp', subtitleStyle: 'bar' },
+  { id: 'illustrated', label: 'Illustrated', suffix: 'digital illustration, vibrant colors, artistic, detailed artwork', subtitleStyle: 'bar' },
+  { id: 'documentary', label: 'Documentary', suffix: 'documentary photography, real, authentic, natural lighting', subtitleStyle: 'bar' },
+  { id: 'abstract',  label: 'Abstract',     suffix: 'abstract art, colorful, modern design, visual metaphor', subtitleStyle: 'bar' },
 ];
 
 export const TTS_VOICES = [
@@ -323,7 +324,8 @@ function drawHookGrade(ctx, W, H) {
 // progress: 0→1 within the scene — drives subtitle slide-up + fade-in
 // Karaoke-style text: 2 words at a time, centered, white + red, Impact font
 // Matches the style from viral comic-book faceless reels
-function drawKaraokeSubtitle(ctx, text, W, H, progress = 1) {
+// darkBg=true flips to dark-ink text for sketch/whiteboard styles with light backgrounds
+function drawKaraokeSubtitle(ctx, text, W, H, progress = 1, darkBg = false) {
   if (!text || !text.trim()) return;
   const words = text.trim().split(/\s+/).filter(Boolean);
   if (!words.length) return;
@@ -351,14 +353,23 @@ function drawKaraokeSubtitle(ctx, text, W, H, progress = 1) {
   chunk.forEach((word, i) => {
     const y = centerY + (i - (chunk.length - 1) / 2) * lineH;
     const display = isHindi ? word : word.toUpperCase();
-    // Thick black stroke for legibility over any background
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = Math.round(fontSize * 0.22);
-    ctx.strokeText(display, W / 2, y);
-    // First word = white, second word = red (the "punch" word)
-    ctx.fillStyle = i === 1 ? '#FF1A1A' : '#FFFFFF';
-    ctx.shadowColor = 'rgba(0,0,0,0.5)';
-    ctx.shadowBlur = 8;
+    if (darkBg) {
+      // Sketch/whiteboard: dark ink on light background — thin white stroke + dark fill
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+      ctx.lineWidth = Math.round(fontSize * 0.1);
+      ctx.strokeText(display, W / 2, y);
+      ctx.fillStyle = i === 1 ? '#c0392b' : '#1a1a2e';
+      ctx.shadowColor = 'rgba(0,0,0,0.15)';
+      ctx.shadowBlur = 4;
+    } else {
+      // Comic/default: thick black stroke + white+red fill for dark backgrounds
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = Math.round(fontSize * 0.22);
+      ctx.strokeText(display, W / 2, y);
+      ctx.fillStyle = i === 1 ? '#FF1A1A' : '#FFFFFF';
+      ctx.shadowColor = 'rgba(0,0,0,0.5)';
+      ctx.shadowBlur = 8;
+    }
     ctx.fillText(display, W / 2, y);
   });
 
@@ -444,7 +455,7 @@ function drawHookTitle(ctx, text, W, H) {
 }
 
 // sceneDurations: number (uniform) or number[] (per-scene). audioBuffers: ArrayBuffer[]|null[]
-export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffers = [], format = FORMATS[0], scriptTitle = '', subtitleStyle = 'bar') {
+export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffers = [], format = FORMATS[0], scriptTitle = '', subtitleStyle = 'bar', styleId = '') {
   const W = format.width;
   const H = format.height;
   const canvas = document.createElement('canvas');
@@ -572,7 +583,7 @@ export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffe
 
       // Subtitle — karaoke (2-word center) or bar (bottom bar)
       if (subtitleStyle === 'karaoke') {
-        drawKaraokeSubtitle(ctx, scene.narration || scene.text || '', W, H, p);
+        drawKaraokeSubtitle(ctx, scene.narration || scene.text || '', W, H, p, styleId === 'sketch');
       } else {
         drawSubtitle(ctx, scene.narration || scene.text || '', W, H, p, i === 0);
       }
