@@ -4,34 +4,43 @@ export const runtime = 'nodejs';
 const VIRALITY_STRUCTURE = `
 VIRALITY STRUCTURE — follow this arc every single time:
 
-SCENE 1 — THE HOOK (stop the scroll in 2 seconds):
-  Use ONE of these proven patterns:
-  a) RESULT FIRST: Show the outcome before explaining how. "₹3 lakh in 47 days. No degree. No job."
-  b) PATTERN INTERRUPT: Start mid-action, zero context. Viewer asks "wait — what is happening?"
-  c) DIRECT CHALLENGE: Attack a belief they hold. "Everything you know about saving money is wrong."
-  d) SHOCKING FACT: A number or claim so specific it feels real. "93% of Indians retire broke."
-  NEVER start with context or setup. Start with the PAYOFF or the PROVOCATION.
+SCENE 1 — THE HOOK (land in first 1.5 seconds — no intro, no setup):
+  Use ONE of these data-proven patterns (50-60% of viewers decide in 2s):
+  a) RESULT FIRST: Lead with the outcome. "₹3 lakh in 47 days. No degree. No job."
+  b) SCROLL-STOPPER PHRASE: Create urgency before they can swipe. "Before you scroll — this changes everything."
+  c) PATTERN INTERRUPT: Start mid-action, zero context. Viewer asks "wait — what is happening?"
+  d) DIRECT CHALLENGE: Attack a belief they hold. "Everything you know about saving money is wrong."
+  e) SHOCKING SPECIFIC FACT: A number so precise it feels real. "93% of Indians retire broke. Here's the other 7%."
+  NEVER start with context, name, or setup. Start with the PAYOFF or the PROVOCATION.
+  HOOK S- VISUAL: Must be an extreme close-up (eyes, hands, cash, phone screen). No wide shots.
 
 SCENES 2-3 — THE PAIN (make them feel it):
   Specific, visceral, deeply relatable. Name the exact moment of failure or frustration.
   The viewer should think: "this is literally me."
+  Each cut is a new image — rapid scene changes reset viewer attention.
 
 SCENES 4-7 — THE BUILD (one new revelation per 2 scenes):
-  Each scene must move the story forward. No filler. Add a mini pattern-interrupt at scene 5:
-  an unexpected fact, a plot twist, or a stat that reframes everything.
+  Each scene must move the story forward. No filler. No repetition — every N- line = new information.
+  Add a mini pattern-interrupt at scene 5: an unexpected fact, a plot twist, or a stat that reframes everything.
+  INFORMATION GAP: the viewer must always be one scene away from the answer. Tease, delay, deliver late.
 
 SCENES 8-9 — THE REVELATION:
-  The insight they stayed for. Make it feel like they are getting insider knowledge.
+  The insight they stayed for. Make it feel like insider knowledge they can't get anywhere else.
   "Most people never know this because..." builds perceived value.
+  Never give away the key insight before scene 8.
 
-SCENE 10-11 — TRANSFORMATION + ENGAGEMENT TRIGGER:
-  Show the after. ALWAYS end the last N- line with a like/share/subscribe call-to-action:
-  "Like, share and subscribe — more stories every week." / "Subscribe if this hit different." / "Share this with someone who needs it — and subscribe for Part 2."
-  Last line should loop back to the opening hook — creates a watch-again impulse.
+SCENE 10-11 — TRANSFORMATION + LOOP HOOK:
+  Show the after. Then ENGINEER THE LOOP: the last line must echo or mirror the opening hook —
+  this makes viewers rewatch without realizing it, pushing AVD above 100% (top algorithm signal).
+  ALWAYS end with: "Like, share and subscribe — more stories every week."
+  OR: "Share this with someone who needs it — and subscribe for Part 2."
+  OR: "Subscribe if this hit different."
 
-INFORMATION GAP RULE:
-  The viewer must always be one scene away from the answer. Tease the revelation, delay it, deliver it late.
-  Never give away the key insight before scene 8.`;
+RETENTION SCIENCE (apply throughout):
+  - 80% of viewers watch muted — every S- visual must tell the story without audio
+  - Rapid cuts every 1-3 scenes keep attention resetting
+  - Seamless loop (last scene → first scene) is the #1 algorithm booster
+  - Never let one image sit for more than 7 seconds`;
 
 const FINANCE_SYSTEM = `You are the world's best viral YouTube Shorts scriptwriter. Your scripts stop the scroll.
 You write for a finance channel targeting young Indians aged 18-30.
@@ -48,6 +57,8 @@ SCENE WRITING RULES:
 - NEVER write a long N- line. Split it. Each split = new scene.
 - Use ₹ for all money amounts. Use exact numbers, not approximations.
 - Every N- line must either PROVOKE an emotion or REVEAL new information. No filler lines.
+- S- visuals must tell the full story even with the sound off (80% of viewers watch muted).
+- LOOP DESIGN: Write the last scene's S- so it visually echoes the first scene — this creates a seamless rewatch loop, the #1 signal the algorithm rewards.
 
 EMOTIONAL TRIGGERS to use throughout:
   FOMO ("while you were sleeping…"), SHOCK (unexpected number or fact),
