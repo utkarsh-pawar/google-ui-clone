@@ -77,10 +77,17 @@ export function GenerationProvider({ children }) {
   const startGeneration = useCallback(async ({
     script, style, format, language = 'en', speedMultiplier, narration, voice,
     titleText, youtubeTitle, youtubeDescription, youtubeTags, channelId,
+    characters = [],
   }) => {
     abortRef.current = false;
     const rawScenes = splitScenes(script);
     if (!rawScenes.length) return;
+
+    // Build character lookup map: { [name]: { appearance, outfit } }
+    const characterDefs = {};
+    for (const c of characters) {
+      if (c.name?.trim()) characterDefs[c.name.toLowerCase().trim()] = c;
+    }
 
     const id = Date.now().toString();
     const title = (rawScenes[0].narration || rawScenes[0].scenePrompt || '').slice(0, 60);
@@ -130,7 +137,7 @@ export function GenerationProvider({ children }) {
         // Fall back to static image if no video
         let img = null;
         if (!videoUrl) {
-          const imgPrompt = makeImagePrompt(scene.scenePrompt, selectedStyle.suffix, selectedFormat, idx === 0, scene.character || '');
+          const imgPrompt = makeImagePrompt(scene.scenePrompt, selectedStyle.suffix, selectedFormat, idx === 0, scene.character || '', characterDefs);
           img = await fetchImage(pollinationsUrl(imgPrompt, selectedFormat.width, selectedFormat.height, idx), 3);
         }
 

@@ -41,6 +41,12 @@ export default function ChannelVideoCreator() {
   const [narration, setNarration] = useState(true);
   const [voice, setVoice] = useState(TTS_VOICES[0].id);
 
+  // Character registry — locked appearance descriptions injected into every scene image prompt
+  const [characters, setCharacters] = useState([]);
+  const addCharacter = () => setCharacters(c => [...c, { name: '', appearance: '', outfit: '' }]);
+  const removeCharacter = (i) => setCharacters(c => c.filter((_, j) => j !== i));
+  const updateCharacter = (i, field, val) => setCharacters(c => c.map((ch, j) => j === i ? { ...ch, [field]: val } : ch));
+
   const sceneList = splitScenes(script);
   const estimatedDuration = Math.round(
     sceneList.reduce((s, scene) => s + sceneDurationFromText(scene.narration || scene.scenePrompt, speedMultiplier), 0)
@@ -85,7 +91,7 @@ export default function ChannelVideoCreator() {
       const res = await fetch('/api/generate-script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: idea.topic, angle: idea.angle, genre, format, language }),
+        body: JSON.stringify({ topic: idea.topic, angle: idea.angle, genre, format, language, characters }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -107,14 +113,14 @@ export default function ChannelVideoCreator() {
       youtubeTitle: title,
       youtubeDescription: pendingScript.description || '',
       youtubeTags: pendingScript.tags || [],
-      channelId,
+      channelId, characters,
     });
     router.push('/video-creator/generations');
-  }, [pendingScript, style, format, language, speedMultiplier, narration, voice, startGeneration, router, channelId]);
+  }, [pendingScript, style, format, language, speedMultiplier, narration, voice, startGeneration, router, channelId, characters]);
 
   const handleGenerate = () => {
     if (!sceneList.length) return;
-    startGeneration({ script, style, format, language, speedMultiplier, narration, voice, titleText, youtubeTitle, youtubeDescription, youtubeTags, channelId });
+    startGeneration({ script, style, format, language, speedMultiplier, narration, voice, titleText, youtubeTitle, youtubeDescription, youtubeTags, channelId, characters });
     router.push('/video-creator/generations');
   };
 
@@ -252,6 +258,46 @@ export default function ChannelVideoCreator() {
         {/* Manual script card */}
         <div className={styles.formCard}>
           <div className={styles.sectionTitle}>Manual Script</div>
+
+          {/* Character Registry */}
+          <div className={styles.charPanel}>
+            <div className={styles.charPanelHeader}>
+              <div className={styles.charPanelTitle}>
+                🎭 Characters
+                <span className={styles.charPanelHint}>locked appearance → consistent AI images</span>
+              </div>
+              <button className={styles.charAddBtn} onClick={addCharacter}>+ Add</button>
+            </div>
+            {characters.length === 0 && (
+              <div className={styles.charEmpty}>
+                Add characters to lock their appearance across all scenes. Use <code>N-[name]</code> in your script.
+              </div>
+            )}
+            {characters.map((char, i) => (
+              <div key={i} className={styles.charRow}>
+                <input
+                  className={styles.charNameInput}
+                  placeholder="name (e.g. priya)"
+                  value={char.name}
+                  onChange={e => updateCharacter(i, 'name', e.target.value)}
+                />
+                <input
+                  className={styles.charAppearanceInput}
+                  placeholder="appearance (e.g. Indian woman 26, straight black hair, brown eyes, determined face)"
+                  value={char.appearance}
+                  onChange={e => updateCharacter(i, 'appearance', e.target.value)}
+                />
+                <input
+                  className={styles.charOutfitInput}
+                  placeholder="outfit (e.g. blue delivery jacket)"
+                  value={char.outfit}
+                  onChange={e => updateCharacter(i, 'outfit', e.target.value)}
+                />
+                <button className={styles.charRemoveBtn} onClick={() => removeCharacter(i)}>×</button>
+              </div>
+            ))}
+          </div>
+
           <input
             type="text"
             className={styles.titleInput}

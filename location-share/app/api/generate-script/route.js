@@ -181,13 +181,14 @@ function getDefaultTags(genre) {
 }
 
 export async function POST(request) {
-  const { topic, angle, genre = 'finance', format = 'portrait', language = 'en' } = await request.json();
+  const { topic, angle, genre = 'finance', format = 'portrait', language = 'en', characters = [] } = await request.json();
   if (!topic) return Response.json({ error: 'Missing topic' }, { status: 400 });
 
   const apiKey = process.env.CEREBRAS_API_KEY;
   if (!apiKey) return Response.json({ error: 'CEREBRAS_API_KEY not set' }, { status: 500 });
 
-  const isShorts = format === 'portrait';
+  const isShorts  = format === 'portrait';
+  const isLong    = format === 'longform';
   const formatNote = isShorts
     ? `Format: YouTube Shorts (9:16 vertical)
 - 9-11 scenes total — every scene must earn its place
@@ -195,6 +196,14 @@ export async function POST(request) {
 - Scene 1 is the HOOK — make it impossible to swipe past
 - Total runtime: 30-45 seconds
 - Pace: fast cuts, relentless forward momentum`
+    : isLong
+    ? `Format: Long Story YouTube Video (16:9 landscape, 6-7 minutes)
+- 42-48 scenes total — this is a full mini-movie
+- N- lines: 1-2 punchy sentences per scene (max 18 words)
+- Scene 1 is the HOOK — first 5 seconds decide everything
+- Structure: Hook (4 scenes) → Setup/Characters (6 scenes) → Rising Action (10 scenes) → Crisis Point (6 scenes) → Turning Point (6 scenes) → Resolution (8 scenes) → Aftermath + CTA (4-6 scenes)
+- Every 8 scenes add a mini-hook to re-capture attention ("but then...")
+- Total runtime: 6-7 minutes`
     : `Format: YouTube Video (16:9 landscape)
 - 30-35 scenes total — quantity of cuts keeps retention high
 - N- lines: 1-2 short sentences per scene (max 20 words)
@@ -217,10 +226,22 @@ export async function POST(request) {
   const baseSystem = getBaseSystem(genre);
   const systemPrompt = `${baseSystem}\n\n${genreNote}`;
 
+  // Build character definitions block for the AI
+  const charBlock = characters.length > 0
+    ? `\nCHARACTER REGISTRY — use these EXACT descriptions in every S- prompt where the character appears:
+${characters.map(c => {
+  const outfitLine = c.outfit ? `, currently wearing: ${c.outfit}` : '';
+  return `- [${c.name.toLowerCase()}]: ${c.appearance}${outfitLine}
+  → Tag all their dialogue as N-[${c.name.toLowerCase()}]
+  → In every S- scene with this character, copy their EXACT appearance string above verbatim for visual consistency`;
+}).join('\n')}
+CONSISTENCY RULE: Never paraphrase a character's appearance — copy the exact string every time they appear in an S- prompt.`
+    : '';
+
   const userPrompt = `Write a maximum-virality YouTube script about: "${topic}"
 Angle: ${angle || 'most viral possible'}
 ${formatNote}
-${langNote}
+${langNote}${charBlock}
 
 TITLE RULES: All 3 title options must use different virality formulas:
   Option 1: Shock/controversy angle ("The [topic] truth nobody admits")
