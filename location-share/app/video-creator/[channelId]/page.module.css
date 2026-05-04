@@ -438,7 +438,103 @@
 .titleOptionArrow { color: var(--accent); font-size: 11px; flex-shrink: 0; opacity: 0.7; }
 .titleOptionHint { font-size: 11px; color: var(--dim); text-align: center; }
 
+/* ── Character Registry ────────────────────────────────────────────────────── */
+.charPanel {
+  background: rgba(99,102,241,0.06);
+  border: 1px solid rgba(99,102,241,0.2);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.charPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.charPanelTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.charPanelHint {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.charAddBtn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.charAddBtn:hover { opacity: 0.85; }
+.charEmpty {
+  font-size: 11px;
+  color: var(--dim);
+  line-height: 1.6;
+}
+.charEmpty code {
+  background: rgba(99,102,241,0.12);
+  color: var(--accent);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+.charRow {
+  display: grid;
+  grid-template-columns: 110px 1fr 140px 24px;
+  gap: 6px;
+  align-items: center;
+}
+.charNameInput,
+.charAppearanceInput,
+.charOutfitInput {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 11px;
+  padding: 6px 8px;
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+.charNameInput:focus,
+.charAppearanceInput:focus,
+.charOutfitInput:focus { border-color: var(--accent); }
+.charNameInput::placeholder,
+.charAppearanceInput::placeholder,
+.charOutfitInput::placeholder { color: var(--dim); }
+.charRemoveBtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.charRemoveBtn:hover { border-color: #ef4444; color: #ef4444; }
+
 @media (max-width: 900px) {
   .formBody { flex-direction: column; align-items: stretch; }
   .autoPanel { max-width: 100%; }
+  .charRow { grid-template-columns: 90px 1fr 110px 22px; }
 }

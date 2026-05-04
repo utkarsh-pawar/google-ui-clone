@@ -3,8 +3,9 @@ export const VIDEO_HEIGHT = 720;
 export const FPS = 30;
 
 export const FORMATS = [
-  { id: 'landscape', label: 'YouTube Video', hint: '16:9', width: 1280, height: 720,  icon: '🖥' },
-  { id: 'portrait',  label: 'YouTube Shorts', hint: '9:16', width: 1080, height: 1920, icon: '📱' },
+  { id: 'portrait',  label: 'YouTube Shorts', hint: '9:16 · 45s',  width: 1080, height: 1920, icon: '📱' },
+  { id: 'landscape', label: 'YouTube Video',  hint: '16:9 · 3min', width: 1280, height: 720,  icon: '🖥' },
+  { id: 'longform',  label: 'Long Story',     hint: '16:9 · 7min', width: 1280, height: 720,  icon: '🎬' },
 ];
 
 export const STYLES = [
@@ -87,24 +88,38 @@ export function sceneDurationFromText(text, multiplier = 1) {
   return Math.round(base * multiplier * 10) / 10;
 }
 
-// Visual hints appended when a named character is speaking — steers AI toward character scenes
+// Fallback appearance hints for common Hindi character names (used when no custom def is set)
 const CHARACTER_APPEARANCE = {
-  ramesh:  'Indian man 40s, tired weathered face, worn kurta, poor household setting',
-  sunita:  'Indian woman 35, simple cotton saree, strong determined expression',
-  priya:   'Indian girl 10 years, school uniform, bright curious eyes',
-  raja:    'Indian man 50s, dhoti kurta, simple rural setting',
-  sita:    'Indian woman 40s, simple saree, traditional household',
+  ramesh: 'Indian man 40s, tired weathered face, worn kurta, poor household setting',
+  sunita: 'Indian woman 35, simple cotton saree, strong determined expression',
+  priya:  'Indian girl 10 years, school uniform, bright curious eyes',
+  raja:   'Indian man 50s, dhoti kurta, simple rural setting',
+  sita:   'Indian woman 40s, simple saree, traditional household',
 };
 
-export function makeImagePrompt(text, styleSuffix, format = FORMATS[0], isHook = false, character = '') {
+// characterDefs: { [name]: { appearance, outfit } } — user-defined character registry
+export function makeImagePrompt(text, styleSuffix, format = FORMATS[0], isHook = false, character = '', characterDefs = {}) {
   const cleaned = text.replace(/[^\w\s,]/g, ' ').slice(0, 200);
-  const aspect = format.id === 'portrait' ? '9:16 aspect ratio, vertical composition, portrait orientation' : '16:9 aspect ratio';
+  const aspect = format.id === 'portrait'
+    ? '9:16 aspect ratio, vertical composition, portrait orientation'
+    : '16:9 aspect ratio, horizontal composition';
   const hookMod = isHook ? ', extreme close-up, dramatic lighting, high contrast, cinematic tension, sharp focus' : '';
-  const charDesc = character && CHARACTER_APPEARANCE[character.toLowerCase()]
-    ? `, ${CHARACTER_APPEARANCE[character.toLowerCase()]}, digital illustration warm colors, character interaction scene`
-    : character && !isHook
-      ? ', character dialogue scene, digital illustration style, warm colors, expressive faces'
-      : '';
+
+  let charDesc = '';
+  if (character) {
+    const lc = character.toLowerCase();
+    const def = characterDefs[lc];
+    if (def?.appearance) {
+      // User-defined character — inject full locked description for maximum consistency
+      const outfitPart = def.outfit ? `, wearing ${def.outfit}` : '';
+      charDesc = `, ${def.appearance}${outfitPart}, same character consistent design, character reference sheet style`;
+    } else if (CHARACTER_APPEARANCE[lc]) {
+      charDesc = `, ${CHARACTER_APPEARANCE[lc]}, digital illustration warm colors, character interaction scene`;
+    } else if (!isHook) {
+      charDesc = ', character dialogue scene, digital illustration style, warm colors, expressive faces';
+    }
+  }
+
   return `${cleaned}${charDesc}, ${styleSuffix}${hookMod}, ${aspect}, high quality`;
 }
 
