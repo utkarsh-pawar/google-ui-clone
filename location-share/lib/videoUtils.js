@@ -8,11 +8,12 @@ export const FORMATS = [
 ];
 
 export const STYLES = [
-  { id: 'cinematic', label: 'Cinematic', suffix: 'cinematic photography, dramatic lighting, film grain, professional' },
-  { id: 'realistic', label: 'Realistic', suffix: 'photorealistic, high resolution, detailed, sharp' },
-  { id: 'illustrated', label: 'Illustrated', suffix: 'digital illustration, vibrant colors, artistic, detailed artwork' },
-  { id: 'documentary', label: 'Documentary', suffix: 'documentary photography, real, authentic, natural lighting' },
-  { id: 'abstract', label: 'Abstract', suffix: 'abstract art, colorful, modern design, visual metaphor' },
+  { id: 'comic',       label: '🎨 Comic',       suffix: 'comic book illustration, thick black outlines, exaggerated cartoon expressions, vibrant colors, animated TV series art style, dynamic pose, detailed background, Marvel comic style', subtitleStyle: 'karaoke' },
+  { id: 'cinematic',   label: 'Cinematic',      suffix: 'cinematic photography, dramatic lighting, film grain, professional', subtitleStyle: 'bar' },
+  { id: 'realistic',   label: 'Realistic',      suffix: 'photorealistic, high resolution, detailed, sharp', subtitleStyle: 'bar' },
+  { id: 'illustrated', label: 'Illustrated',    suffix: 'digital illustration, vibrant colors, artistic, detailed artwork', subtitleStyle: 'bar' },
+  { id: 'documentary', label: 'Documentary',    suffix: 'documentary photography, real, authentic, natural lighting', subtitleStyle: 'bar' },
+  { id: 'abstract',    label: 'Abstract',       suffix: 'abstract art, colorful, modern design, visual metaphor', subtitleStyle: 'bar' },
 ];
 
 export const TTS_VOICES = [
@@ -305,6 +306,50 @@ function drawHookGrade(ctx, W, H) {
 }
 
 // progress: 0→1 within the scene — drives subtitle slide-up + fade-in
+// Karaoke-style text: 2 words at a time, centered, white + red, Impact font
+// Matches the style from viral comic-book faceless reels
+function drawKaraokeSubtitle(ctx, text, W, H, progress = 1) {
+  if (!text || !text.trim()) return;
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return;
+
+  // Group into 2-word chunks
+  const chunks = [];
+  for (let i = 0; i < words.length; i += 2) chunks.push(words.slice(i, i + 2));
+
+  const chunkIdx = Math.min(Math.floor(progress * chunks.length), chunks.length - 1);
+  const chunk = chunks[chunkIdx];
+
+  const isHindi = chunk.some(w => /[ऀ-ॿ]/.test(w));
+  const fontSize = W < 900 ? Math.round(W * 0.115) : Math.round(W * 0.082);
+  const lineH = fontSize * 1.18;
+  const centerY = H * 0.56;
+
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = isHindi
+    ? `900 ${fontSize}px 'Noto Sans Devanagari', 'Mangal', sans-serif`
+    : `900 ${fontSize}px Impact, 'Arial Black', sans-serif`;
+  ctx.lineJoin = 'round';
+
+  chunk.forEach((word, i) => {
+    const y = centerY + (i - (chunk.length - 1) / 2) * lineH;
+    const display = isHindi ? word : word.toUpperCase();
+    // Thick black stroke for legibility over any background
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = Math.round(fontSize * 0.22);
+    ctx.strokeText(display, W / 2, y);
+    // First word = white, second word = red (the "punch" word)
+    ctx.fillStyle = i === 1 ? '#FF1A1A' : '#FFFFFF';
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 8;
+    ctx.fillText(display, W / 2, y);
+  });
+
+  ctx.restore();
+}
+
 function drawSubtitle(ctx, text, W, H, progress = 1, isHook = false) {
   const padding = 48;
   const fontSize = isHook ? (W < 900 ? 44 : 40) : (W < 900 ? 38 : 34);
@@ -384,7 +429,7 @@ function drawHookTitle(ctx, text, W, H) {
 }
 
 // sceneDurations: number (uniform) or number[] (per-scene). audioBuffers: ArrayBuffer[]|null[]
-export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffers = [], format = FORMATS[0], scriptTitle = '') {
+export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffers = [], format = FORMATS[0], scriptTitle = '', subtitleStyle = 'bar') {
   const W = format.width;
   const H = format.height;
   const canvas = document.createElement('canvas');
@@ -510,8 +555,12 @@ export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffe
       ctx.fillRect(0, 0, W, H);
       ctx.globalAlpha = 1;
 
-      // Subtitle with slide-up animation (p = scene progress 0→1)
-      drawSubtitle(ctx, scene.narration || scene.text || '', W, H, p, i === 0);
+      // Subtitle — karaoke (2-word center) or bar (bottom bar)
+      if (subtitleStyle === 'karaoke') {
+        drawKaraokeSubtitle(ctx, scene.narration || scene.text || '', W, H, p);
+      } else {
+        drawSubtitle(ctx, scene.narration || scene.text || '', W, H, p, i === 0);
+      }
       if (i === 0 && scriptTitle) drawHookTitle(ctx, scriptTitle, W, H);
       sceneFrame++;
     };
