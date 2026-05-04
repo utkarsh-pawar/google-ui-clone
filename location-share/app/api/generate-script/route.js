@@ -24,9 +24,9 @@ SCENES 8-9 — THE REVELATION:
   The insight they stayed for. Make it feel like they are getting insider knowledge.
   "Most people never know this because..." builds perceived value.
 
-SCENE 10-11 — TRANSFORMATION + SAVE TRIGGER:
-  Show the after. End with a line that makes them want to save or share:
-  "Save this before you forget." / "Send this to someone who needs it." / "Follow for Part 2."
+SCENE 10-11 — TRANSFORMATION + ENGAGEMENT TRIGGER:
+  Show the after. ALWAYS end the last N- line with a like/share/subscribe call-to-action:
+  "Like, share and subscribe — more stories every week." / "Subscribe if this hit different." / "Share this with someone who needs it — and subscribe for Part 2."
   Last line should loop back to the opening hook — creates a watch-again impulse.
 
 INFORMATION GAP RULE:
