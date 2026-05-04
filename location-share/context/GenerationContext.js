@@ -130,7 +130,7 @@ export function GenerationProvider({ children }) {
         // Fall back to static image if no video
         let img = null;
         if (!videoUrl) {
-          const imgPrompt = makeImagePrompt(scene.scenePrompt, selectedStyle.suffix, selectedFormat, idx === 0);
+          const imgPrompt = makeImagePrompt(scene.scenePrompt, selectedStyle.suffix, selectedFormat, idx === 0, scene.character || '');
           img = await fetchImage(pollinationsUrl(imgPrompt, selectedFormat.width, selectedFormat.height, idx), 3);
         }
 
@@ -159,7 +159,7 @@ export function GenerationProvider({ children }) {
       }));
 
       const audioResults = await Promise.allSettled(
-        rawScenes.map(scene => fetchSceneAudio(scene.narration || scene.scenePrompt, voice || 'Brian', language))
+        rawScenes.map(scene => fetchSceneAudio(scene.narration || scene.scenePrompt, voice || 'Brian', language, scene.character || ''))
       );
       audioBuffers = audioResults.map(r => r.status === 'fulfilled' ? r.value : null);
 
@@ -200,6 +200,7 @@ export function GenerationProvider({ children }) {
         scenes, sceneDurations,
         (current, total) => setActive(a => ({ ...a, progress: { step: 'Recording video…', current, total } })),
         audioBuffers, selectedFormat, titleText || '',
+        selectedStyle.subtitleStyle || 'bar',
       );
 
       const done = {

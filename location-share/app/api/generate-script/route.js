@@ -132,11 +132,24 @@ const GENRE_INSTRUCTIONS = {
   - Every scene should add one new piece of information — never repeat
   Title formula: "The ₹X strategy nobody talks about" / "How [specific person] did [specific thing] in [time]"`,
 
-  stories: `Genre: STORY-BASED.
+  stories: `Genre: STORY-BASED WITH NAMED CHARACTERS.
   Virality angle: Make the viewer see THEMSELVES in the protagonist.
+
+  CHARACTER RULES:
+  - Introduce 2-3 named characters by scene 2 (e.g. Ramesh, Sunita, Priya)
+  - Use N-[character_name] syntax to tag who is speaking/being narrated
+    Example: N-[narrator] उसके पास सिर्फ ₹200 थे।
+    Example: N-[ramesh] "मुझे नहीं पता कल क्या होगा।"
+    Example: N-[sunita] "हम momo बनाएंगे।"
+  - Use N-[narrator] for third-person storytelling lines
+  - Each scene should have ONE N-[character] line — keep it one voice per scene
+  - VISUAL RULE FOR CHARACTER SCENES: S- must describe the characters in the shot with their appearance and emotion.
+    Example: S- Ramesh, tired Indian man 40s in worn kurta, sitting at dim table, head bowed, cracked room wall behind him, warm low light, illustration style
+
+  STORY ARC:
   - Open with the protagonist at their lowest moment — specific detail, specific pain
   - The turning point must feel earned and real, not lucky
-  - Weave in the financial lesson as a byproduct of the story, not the point of it
+  - Weave in the lesson as a byproduct of the story, not the point of it
   - End with a transformation that feels achievable, not aspirational
   Title formula: "I [specific struggle] — here is what changed everything" / "From [low point] to [result]: the real story"`,
 
@@ -216,7 +229,7 @@ TITLE RULES: All 3 title options must use different virality formulas:
 
 Return JSON only:
 {
-  "script": "S- [ultra-vivid cinematic image prompt]\\nN- [max 12 words, punchy]\\n\\nS- ...\\nN- ...",
+  "script": "S- [ultra-vivid cinematic image prompt]\\nN-[character] [max 12 words]\\n\\nS- ...\\nN-[character] ...\\n(Use N-[narrator] for voiceover, N-[name] for character dialogue. Stories genre MUST use character tags.)",
   "titleOptions": [
     "Shock/controversy title with emoji under 60 chars",
     "Curiosity gap title with emoji under 60 chars",
