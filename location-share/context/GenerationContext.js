@@ -31,7 +31,6 @@ function waitForVisible() {
   });
 }
 
-// Fetch one image with retries — no sleep between retries so it works in background
 async function fetchImage(url, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try { return await loadImage(url); }
@@ -40,9 +39,6 @@ async function fetchImage(url, retries = 3) {
   return null;
 }
 
-// Try to get a video clip URL for this scene — returns null if unavailable.
-// Returns the symbol VIDEO_RATE_LIMITED if the provider is rate-limited so the
-// caller can stop trying for the rest of the generation.
 export const VIDEO_RATE_LIMITED = Symbol('rate_limited');
 
 async function fetchVideoUrl(scenePrompt, format) {
@@ -54,6 +50,59 @@ async function fetchVideoUrl(scenePrompt, format) {
     const data = await res.json();
     return data.url || null;
   } catch {
+    return null;
+  }
+}
+
+// Upload video to YouTube using stored token — returns { videoId, videoUrl } or null
+async function autoUploadToYouTube(blob, { youtubeTitle, youtubeDescription, youtubeTags, channelId }) {
+  try {
+    const { getFreshToken, saveUploadHistoryEntry } = await import('@/lib/youtubeUtils');
+    const accessToken = await getFreshToken(channelId);
+
+    const metadata = {
+      snippet: {
+        title: (youtubeTitle || 'Auto-generated Short').slice(0, 100),
+        description: youtubeDescription || '',
+        tags: (youtubeTags || []).map(t => t.replace(/^#/, '')).slice(0, 15),
+        categoryId: '27',
+        defaultLanguage: 'en',
+      },
+      status: { privacyStatus: 'public', selfDeclaredMadeForKids: false },
+    };
+
+    const initRes = await fetch(
+      'https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'X-Upload-Content-Type': blob.type || 'video/webm',
+          'X-Upload-Content-Length': blob.size,
+        },
+        body: JSON.stringify(metadata),
+      }
+    );
+    if (!initRes.ok) throw new Error(`YouTube init ${initRes.status}`);
+
+    const uploadUrl = initRes.headers.get('Location');
+    const uploadRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': blob.type || 'video/webm', 'Content-Length': blob.size },
+      body: blob,
+    });
+    if (!uploadRes.ok) throw new Error(`YouTube upload ${uploadRes.status}`);
+
+    const result = await uploadRes.json();
+    const videoId = result.id;
+    const ytUrl = `https://www.youtube.com/shorts/${videoId}`;
+    if (saveUploadHistoryEntry) {
+      saveUploadHistoryEntry({ videoId, videoUrl: ytUrl, title: youtubeTitle, channelId, uploadedAt: new Date().toISOString() });
+    }
+    return { videoId, videoUrl: ytUrl };
+  } catch (err) {
+    console.warn('Auto-upload failed:', err.message);
     return null;
   }
 }
@@ -78,12 +127,13 @@ export function GenerationProvider({ children }) {
     script, style, format, language = 'en', speedMultiplier, narration, voice,
     titleText, youtubeTitle, youtubeDescription, youtubeTags, channelId,
     characters = [],
+    autoUpload = false,     // ← when true: auto-upload to YouTube after render
+    onComplete = null,      // ← optional callback(result) after everything done
   }) => {
     abortRef.current = false;
     const rawScenes = splitScenes(script);
     if (!rawScenes.length) return;
 
-    // Build character lookup map: { [name]: { appearance, outfit } }
     const characterDefs = {};
     for (const c of characters) {
       if (c.name?.trim()) characterDefs[c.name.toLowerCase().trim()] = c;
@@ -110,8 +160,6 @@ export function GenerationProvider({ children }) {
     });
 
     // ── Phase 1: Images / video clips ────────────────────────────────────────
-    // All fetch() calls run concurrently and continue even when tab is hidden.
-    // Try video clip first (animated reel), fall back to static image.
     let imgDone = 0;
     let videoRateLimited = false;
     const BATCH = 4;
@@ -123,7 +171,6 @@ export function GenerationProvider({ children }) {
       await Promise.allSettled(batchIndices.map(async idx => {
         const scene = rawScenes[idx];
 
-        // Try animated video clip first (needs Pexels/Pixabay API key)
         let videoUrl = null;
         if (!videoRateLimited) {
           const result = await fetchVideoUrl(scene.scenePrompt, selectedFormat);
@@ -134,7 +181,6 @@ export function GenerationProvider({ children }) {
           }
         }
 
-        // Fall back to static image if no video
         let img = null;
         if (!videoUrl) {
           const imgPrompt = makeImagePrompt(scene.scenePrompt, selectedStyle.suffix, selectedFormat, idx === 0, scene.character || '', characterDefs);
@@ -157,7 +203,6 @@ export function GenerationProvider({ children }) {
     if (abortRef.current) { setActive(a => ({ ...a, status: 'cancelled' })); return; }
 
     // ── Phase 2: Audio ────────────────────────────────────────────────────────
-    // All TTS fetches run concurrently — also background-safe.
     let audioBuffers = [];
     if (narration) {
       setActive(a => ({
@@ -179,14 +224,11 @@ export function GenerationProvider({ children }) {
     if (abortRef.current) { setActive(a => ({ ...a, status: 'cancelled' })); return; }
 
     // ── Phase 3: Render ───────────────────────────────────────────────────────
-    // Canvas + MediaRecorder require an active, visible tab.
-    // We wait here until the user switches back.
     setActive(a => ({ ...a, status: 'waiting', progress: { step: 'Open this tab to start rendering…', current: 0, total: scenes.length, background: false } }));
     await waitForVisible();
 
     if (abortRef.current) { setActive(a => ({ ...a, status: 'cancelled' })); return; }
 
-    // Load video elements for animated scenes (requires active tab / DOM)
     const hasVideoClips = scenes.some(s => s.videoUrl);
     if (hasVideoClips) {
       setActive(a => ({ ...a, status: 'recording', progress: { step: 'Loading video clips…', current: 0, total: scenes.length } }));
@@ -194,16 +236,14 @@ export function GenerationProvider({ children }) {
         if (!scene.videoUrl) return;
         try {
           scenes[idx] = { ...scene, videoEl: await loadVideoClip(scene.videoUrl) };
-        } catch {
-          // Video element failed — scene will use image fallback (videoEl stays null)
-        }
+        } catch {}
       }));
     }
 
     setActive(a => ({ ...a, status: 'recording', progress: { step: 'Recording video…', current: 0, total: scenes.length } }));
 
     try {
-      const videoUrl = await renderVideo(
+      const { url: videoUrl, blob: videoBlob } = await renderVideo(
         scenes, sceneDurations,
         (current, total) => setActive(a => ({ ...a, progress: { step: 'Recording video…', current, total } })),
         audioBuffers, selectedFormat, titleText || '',
@@ -211,15 +251,29 @@ export function GenerationProvider({ children }) {
         style,
       );
 
+      // ── Phase 4: Auto-upload ──────────────────────────────────────────────
+      let ytResult = null;
+      if (autoUpload && videoBlob) {
+        setActive(a => ({ ...a, status: 'uploading', progress: { step: 'Uploading to YouTube…', current: scenes.length, total: scenes.length } }));
+        ytResult = await autoUploadToYouTube(videoBlob, { youtubeTitle, youtubeDescription, youtubeTags, channelId });
+        addToast(ytResult
+          ? `✅ Uploaded: ${youtubeTitle || title}`
+          : '⚠️ Upload failed — video saved locally'
+        );
+      }
+
       const done = {
         id, title, style, format, language, speedMultiplier, narration, voice, titleText, rawScenes,
         channelId: channelId || 'general',
         scenes, status: 'done', videoUrl, youtubeTitle, youtubeDescription, youtubeTags,
-        progress: { step: 'Done', current: scenes.length, total: scenes.length },
+        ytVideoId: ytResult?.videoId || null,
+        ytVideoUrl: ytResult?.videoUrl || null,
+        progress: { step: ytResult ? `Uploaded ✅` : 'Done', current: scenes.length, total: scenes.length },
         createdAt: new Date().toISOString(),
       };
       setActive(done);
       setHistory(h => { const updated = [done, ...h]; saveHistory(updated); return updated; });
+      onComplete?.(done);
     } catch (err) {
       setActive(a => ({ ...a, status: 'error', error: err.message }));
     }

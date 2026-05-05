@@ -608,6 +608,9 @@ export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffe
   if (audioCtx) audioCtx.close();
 
   return new Promise(resolve => {
-    recorder.onstop = () => resolve(URL.createObjectURL(new Blob(chunks, { type: 'video/webm' })));
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: 'video/webm' });
+      resolve({ url: URL.createObjectURL(blob), blob });
+    };
   });
 }
