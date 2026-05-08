@@ -196,7 +196,8 @@ export function GenerationProvider({ children }) {
     }
 
     const id = Date.now().toString();
-    const title = (rawScenes[0].narration || rawScenes[0].scenePrompt || '').slice(0, 60);
+    const rawTitle = rawScenes[0].narration || rawScenes[0].scenePrompt || '';
+    const title = rawTitle.replace(/^(narrator|narration|voice|halku)\s*/i, '').slice(0, 60);
     const selectedStyle = STYLES.find(s => s.id === style) || STYLES[0];
     const selectedFormat = FORMATS.find(f => f.id === format) || FORMATS[0];
     const sceneDurations = rawScenes.map(s =>
