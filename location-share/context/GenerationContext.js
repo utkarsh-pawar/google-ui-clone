@@ -334,18 +334,24 @@ export function GenerationProvider({ children }) {
         style,
       );
 
+      // Append top hashtags to YouTube title (YouTube shows them as clickable links)
+      const tagSuffix = (youtubeTags || []).slice(0, 3).join(' ');
+      const finalYoutubeTitle = youtubeTitle
+        ? `${youtubeTitle} ${tagSuffix}`.trim().slice(0, 100)
+        : youtubeTitle;
+
       // ── Phase 4: Auto-upload ──────────────────────────────────────────────
       let ytResult = null;
       if (autoUpload && videoBlob) {
         setActive(a => ({ ...a, status: 'uploading', progress: { step: 'Uploading to YouTube…', current: scenes.length, total: scenes.length } }));
-        ytResult = await autoUploadToYouTube(videoBlob, { youtubeTitle, youtubeDescription, youtubeTags, channelId });
-        addToast(ytResult ? `✅ Uploaded: ${youtubeTitle || title}` : '⚠️ Upload failed — video saved locally');
+        ytResult = await autoUploadToYouTube(videoBlob, { youtubeTitle: finalYoutubeTitle, youtubeDescription, youtubeTags, channelId });
+        addToast(ytResult ? `✅ Uploaded: ${finalYoutubeTitle || title}` : '⚠️ Upload failed — video saved locally');
       }
 
       const done = {
         id, title, style, format, language, speedMultiplier, narration, voice, titleText, rawScenes,
         channelId: channelId || 'general', characterDefs,
-        scenes, status: 'done', videoUrl, youtubeTitle, youtubeDescription, youtubeTags,
+        scenes, status: 'done', videoUrl, youtubeTitle: finalYoutubeTitle, youtubeDescription, youtubeTags,
         ytVideoId: ytResult?.videoId || null,
         ytVideoUrl: ytResult?.videoUrl || null,
         progress: { step: ytResult ? 'Uploaded ✅' : 'Done', current: scenes.length, total: scenes.length },
