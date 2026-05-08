@@ -139,9 +139,11 @@ export function getUploadHistory() {
   catch { return []; }
 }
 
-function saveUploadHistory(entry) {
+export function saveUploadHistoryEntry(entry) {
   try {
     const h = getUploadHistory();
     localStorage.setItem(YT_HISTORY_KEY, JSON.stringify([entry, ...h].slice(0, 50)));
   } catch {}
 }
+
+function saveUploadHistory(entry) { saveUploadHistoryEntry(entry); }

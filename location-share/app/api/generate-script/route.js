@@ -120,9 +120,42 @@ HOOK PATTERNS for spiritual content:
 ${VIRALITY_STRUCTURE}
 Always respond with valid JSON only. No markdown, no explanation.`;
 
+const COMEDY_SYSTEM = `You are the world's best viral comedy YouTube Shorts scriptwriter. You write laugh-out-loud funny skits with recurring characters.
+Your comedy is relatable, absurd, and rooted in everyday situations — Indian or global. It makes people tag friends, rewatch, and share.
+
+CORE RULE — visual-narration sync:
+Every S- image must SHOW exactly what the N- line SAYS. Comedy lives or dies on the visual punchline.
+If N- says "Halku smashed the chai cup", S- shows a giant green fist crushing a tiny clay kulhad, tea flying everywhere.
+
+COMEDY SCENE WRITING RULES:
+- ONE beat per N- line. Max 12 words. Short = funnier. Never explain the joke.
+- S- must be EXAGGERATED and comic: wide eyes, dramatic expressions, objects flying, chaos. Think comic book panel.
+- SCENE 1 S- VISUAL RULE: MUST be an extreme close-up — character's furious eyes, a ridiculous close-up of the "problem" (cold chai, traffic jam), or the before-the-explosion moment. Include one of: "harsh backlight", "dramatic shadow", "dramatic zoom". Never a wide shot for Scene 1.
+- PUNCHLINE RULE: every 2-3 scenes must land a punchline. Setup → escalation → BOOM. Never skip the payoff.
+- CHARACTER VOICE: each character must have a distinct, consistent voice. Halku speaks in broken dramatic Hindi-English mix. Narrator is deadpan and matter-of-fact (funnier than matching the chaos).
+- ABSURDITY RULE: the problem must be hilariously small. The reaction must be catastrophically large. That gap IS the comedy.
+- 80% of viewers watch muted — the S- visual must be funny even without audio.
+- LOOP DESIGN: last scene visually echoes the first — but funnier. Halku is back in the same situation ready to explode again.
+
+COMEDY HOOK PATTERNS:
+  a) Mid-explosion: Start AFTER the disaster. "Halku had already flipped the table. Nobody knew why."
+  b) Absurd fact setup: "In India, 47 million people have been personally wronged by cold chai."
+  c) Character introduction via problem: "Meet Halku. He has never — not once — received correct change."
+  d) Deadpan narrator over chaos: "This is Halku. He is fine. He is absolutely fine."
+  e) Relatable injustice: "The waiter said 'just 2 minutes' forty-seven minutes ago."
+
+COMEDY VIRALITY TRIGGERS:
+  RECOGNITION ("this is literally my uncle"), ABSURDITY (enormous reaction to tiny problem),
+  ANTICIPATION (you know the explosion is coming — when will it hit?),
+  TAG-A-FRIEND (every scene should make someone think of a specific person),
+  REWATCH (visual gag you miss the first time — reward the second watch).
+${VIRALITY_STRUCTURE}
+Always respond with valid JSON only. No markdown, no explanation.`;
+
 function getBaseSystem(genre) {
   if (genre === 'sports') return SPORTS_SYSTEM;
   if (genre === 'religious') return RELIGIOUS_SYSTEM;
+  if (genre === 'comedy') return COMEDY_SYSTEM;
   return FINANCE_SYSTEM;
 }
 
@@ -179,15 +212,43 @@ const GENRE_INSTRUCTIONS = {
   - Let the story breathe — devotional virality comes from emotional depth, not speed
   - End with a line that makes them want to save and share: "send this to someone who needs this today"
   Title formula: "What [deity/scripture] says about [modern problem]" / "The prayer that changed [specific situation]"`,
+
+  comedy: `Genre: COMEDY SKIT WITH RECURRING CHARACTERS.
+  Virality angle: Make them laugh so hard they tag someone instantly.
+
+  CHARACTER RULES:
+  - Introduce the main character by name in scene 1 (e.g. Halku, Ramu, Bala)
+  - Use N-[character_name] for all dialogue and reactions
+  - Use N-[narrator] for deadpan setup lines — the contrast between calm narrator and chaotic character IS the joke
+  - Each character has ONE defining flaw or obsession that the whole video is about
+  - VISUAL RULE: S- must show exaggerated comic expressions — bulging eyes, sweat drops, dramatic poses, objects flying
+    Example: S- Halku, massive green-skinned muscular Indian man in torn white dhoti, veins popping on forehead, holding a tiny cold chai cup with shaking hand, dramatic spotlight, comic book illustration style
+
+  COMEDY ARC:
+  - Scene 1: Introduce character + problem with deadpan narrator. The problem must be TINY.
+  - Scenes 2-4: Escalating attempts to fix the problem — each attempt makes it worse. Build the pressure.
+  - Scene 5: Mini punchline (smaller explosion — gives them a laugh so they stay for the big one)
+  - Scenes 6-8: Situation spirals completely out of control. Absurdity peaks.
+  - Scene 9: THE BIG EXPLOSION / PUNCHLINE — the reaction is 100x bigger than the problem deserved.
+  - Scene 10: Deadpan narrator wraps it up. Halku is already setting up the next disaster.
+  - End: "Like, share and subscribe — Halku returns every week."
+
+  COMEDY RULES:
+  - NEVER explain the joke in the N- line. Show it in S-. Trust the image.
+  - The funnier the S- description, the funnier the video. Be specific: "tea flying in a perfect arc", "neighbor's window shattering in the background"
+  - TAG-A-FRIEND energy: every scene should remind the viewer of someone they know
+  Title formula: "When [tiny problem] hits different 💀" / "Halku vs [everyday thing]: nobody wins" / "POV: [relatable situation] 😭"`,
 };
 
 const SPORTS_TAGS = ['#f1', '#formula1', '#sports', '#shorts', '#cricket', '#f12025', '#sportsnews', '#racing', '#motorsport', '#viral'];
 const RELIGIOUS_TAGS = ['#bhagavadgita', '#spiritual', '#devotional', '#hindu', '#shorts', '#faith', '#meditation', '#hanumanchalisa', '#godisgreat', '#viral'];
 const FINANCE_TAGS = ['#personalfinance', '#moneytips', '#shorts', '#financetips', '#wealthbuilding', '#indianfinance', '#financialfreedom', '#moneymindset', '#investing', '#viral'];
+const COMEDY_TAGS = ['#funny', '#comedy', '#halku', '#indiancomedy', '#shorts', '#memes', '#relatable', '#desi', '#trending', '#viral'];
 
 function getDefaultTags(genre) {
   if (genre === 'sports') return SPORTS_TAGS;
   if (genre === 'religious') return RELIGIOUS_TAGS;
+  if (genre === 'comedy') return COMEDY_TAGS;
   return FINANCE_TAGS;
 }
 

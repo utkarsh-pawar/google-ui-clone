@@ -35,6 +35,8 @@
 .title { font-size: 18px; font-weight: 700; }
 .subtitle { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; }
 
+.headerLinks { display: flex; gap: 8px; }
+
 .historyLink {
   color: var(--accent);
   text-decoration: none;

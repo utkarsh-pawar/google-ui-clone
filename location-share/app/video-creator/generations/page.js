@@ -163,80 +163,188 @@ function ProgressBar({ current, total, step }) {
   );
 }
 
-function SceneGrid({ scenes }) {
+function sceneStatusLabel(scene) {
+  if (scene.retrying) return { icon: '↺', text: 'Retrying…', cls: 'imgLoading' };
+  if (scene.queueStatus === 'queued') return { icon: '🕐', text: 'Queued…', cls: 'imgLoading' };
+  if (scene.queueStatus === 'running') return { icon: null, text: 'Fetching…', cls: 'imgLoading', spin: true };
+  if (scene.queueStatus === 'retry') return { icon: '↺', text: `Retry ${scene.attempt || ''}…`, cls: 'imgLoading' };
+  if (scene.image) return null;
+  if (scene.error) return { icon: '⚠', text: 'AI failed', cls: 'imgError' };
+  return { icon: null, text: 'Generating…', cls: 'imgLoading', spin: true };
+}
+
+function SceneGrid({ scenes, onRetry, showRetry = false }) {
   if (!scenes?.length) return null;
   return (
     <div className={styles.sceneCards}>
-      {scenes.map((scene, i) => (
-        <div key={i} className={styles.sceneCard}>
+      {scenes.map((scene, i) => {
+        const label = sceneStatusLabel(scene);
+        return (
+        <div key={i} className={`${styles.sceneCard} ${scene.error ? styles.sceneCardError : ''}`}>
           <div className={styles.sceneImg}>
-            {scene.image
-              ? <img src={scene.image.src} alt={`Scene ${i + 1}`} />
-              : scene.error
-                ? <div className={styles.imgError}>⚠ Failed</div>
-                : <div className={styles.imgLoading}>Generating…</div>}
+            {label ? (
+              <div className={styles[label.cls]}>
+                {(label.spin || label.icon === null) && !label.icon && <span className={styles.spinner} />}
+                {label.icon && <span>{label.icon}</span>}
+                {' '}{label.text}
+              </div>
+            ) : (
+              <img src={scene.image.src} alt={`Scene ${i + 1}`} />
+            )}
+            {showRetry && !scene.retrying && !scene.queueStatus && (
+              <button className={styles.retryImgBtn} onClick={() => onRetry?.(i)} title="Regenerate this image">
+                ↺
+              </button>
+            )}
           </div>
           <div className={styles.sceneText}>
             <span className={styles.sceneNum}>Scene {i + 1}</span>
             {scene.narration && (
               <p>{scene.narration.slice(0, 100)}{scene.narration.length > 100 ? '…' : ''}</p>
             )}
-            {scene.scenePrompt && scene.scenePrompt !== scene.narration && (
-              <p style={{ color: 'var(--dim)', fontSize: '10px', marginTop: '2px' }}>
-                🖼 {scene.scenePrompt.slice(0, 80)}{scene.scenePrompt.length > 80 ? '…' : ''}
-              </p>
+            {scene.character && (
+              <p className={styles.sceneChar}>👤 {scene.character}</p>
             )}
-            {scene.error && scene.errorMsg && (
+            {scene.errorMsg && (
               <p className={styles.sceneError}>{scene.errorMsg}</p>
             )}
           </div>
+        </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const PHASE_STEPS = [
+  { key: 'generating',    label: '1 · Images',    icon: '🖼' },
+  { key: 'review-images', label: '1 · Images',    icon: '🖼' },
+  { key: 'narration',     label: '2 · Narration', icon: '🎙' },
+  { key: 'review-audio',  label: '2 · Narration', icon: '🎙' },
+  { key: 'waiting',       label: '3 · Render',    icon: '🎬' },
+  { key: 'recording',     label: '3 · Render',    icon: '🎬' },
+  { key: 'uploading',     label: '4 · Upload',    icon: '▲' },
+  { key: 'done',          label: '✅ Done',        icon: '✅' },
+];
+
+function PhaseStepper({ status }) {
+  const phases = ['generating', 'narration', 'recording', 'done'];
+  const phaseIdx = status === 'review-images' || status === 'generating' ? 0
+    : status === 'narration' || status === 'review-audio' ? 1
+    : status === 'waiting' || status === 'recording' || status === 'uploading' ? 2
+    : status === 'done' ? 3 : -1;
+
+  return (
+    <div className={styles.stepper}>
+      {['🖼 Images', '🎙 Narration', '🎬 Render', '✅ Done'].map((label, i) => (
+        <div key={i} className={`${styles.stepperStep} ${i === phaseIdx ? styles.stepperActive : i < phaseIdx ? styles.stepperDone : ''}`}>
+          <div className={styles.stepperDot} />
+          <span>{label}</span>
+          {i < 3 && <div className={styles.stepperLine} />}
         </div>
       ))}
     </div>
   );
 }
 
-function ActiveGeneration({ active, cancelGeneration }) {
+function ActiveGeneration({ active, cancelGeneration, approvePhase, retryScene }) {
   const [uploadedId, setUploadedId] = useState(null);
-  const isGenerating = active.status === 'generating';
-  const isRecording = active.status === 'recording';
-  const isDone = active.status === 'done';
-  const isError = active.status === 'error';
-  const isCancelled = active.status === 'cancelled';
+  const { status } = active;
+  const isRunning  = ['generating', 'narration', 'recording', 'uploading', 'waiting'].includes(status);
+  const isReview   = ['review-images', 'review-audio'].includes(status);
+  const isDone     = status === 'done';
+  const isError    = status === 'error';
+  const isCancelled = status === 'cancelled';
 
   return (
     <div className={styles.activeCard}>
+      {/* Header */}
       <div className={styles.activeHeader}>
         <div className={styles.activeTitle}>
-          {(isGenerating || isRecording) && <span className={styles.spinner} />}
+          {isRunning && <span className={styles.spinner} />}
           {isDone && <span className={styles.statusIcon}>✅</span>}
           {isError && <span className={styles.statusIcon}>❌</span>}
           {isCancelled && <span className={styles.statusIcon}>🚫</span>}
+          {isReview && <span className={styles.statusIcon}>👀</span>}
           <span>{active.title || 'Untitled'}</span>
         </div>
-        {(isGenerating || isRecording) && (
+        {(isRunning || isReview) && (
           <button className={styles.cancelBtn} onClick={cancelGeneration}>Cancel</button>
         )}
       </div>
 
-      {(isGenerating || isRecording) && (
+      {/* Phase stepper */}
+      <PhaseStepper status={status} />
+
+      {/* Progress bar while running */}
+      {isRunning && (
         <ProgressBar current={active.progress.current} total={active.progress.total} step={active.progress.step} />
       )}
-
-      {isRecording && (
-        <div className={styles.recordingNote}>Recording video — keep this tab open until complete</div>
+      {status === 'recording' && (
+        <div className={styles.recordingNote}>Recording — keep this tab open and visible</div>
       )}
 
+      {/* ── Review: Images ── */}
+      {status === 'review-images' && (
+        <div className={styles.reviewBox}>
+          <div className={styles.reviewTitle}>
+            👀 Review your images — retry any you don&apos;t like, then continue
+          </div>
+          <SceneGrid scenes={active.scenes} onRetry={retryScene} showRetry />
+          <div className={styles.reviewCta}>
+            <div className={styles.reviewHint}>
+              {active.scenes?.filter(s => s.error).length > 0
+                ? `⚠ ${active.scenes.filter(s => s.error).length} image(s) failed — retry or continue anyway`
+                : `✅ All ${active.scenes?.length} images ready`}
+            </div>
+            <button className={styles.nextBtn} onClick={approvePhase}>
+              Next: Generate Narration →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Review: Audio ── */}
+      {status === 'review-audio' && (
+        <div className={styles.reviewBox}>
+          <div className={styles.reviewTitle}>
+            🎙 Narration ready — review scenes then render
+          </div>
+          <div className={styles.narrationList}>
+            {active.rawScenes?.map((scene, i) => (
+              <div key={i} className={styles.narrationRow}>
+                <span className={styles.narrationNum}>{i + 1}</span>
+                <div className={styles.narrationContent}>
+                  {scene.character && <span className={styles.narrationChar}>{scene.character}</span>}
+                  <span className={styles.narrationText}>{scene.narration || scene.scenePrompt}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className={styles.reviewCta}>
+            <div className={styles.reviewHint}>✅ Ready to render</div>
+            <button className={styles.nextBtn} onClick={approvePhase}>
+              Next: Render Video →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Generating: show partial images ── */}
+      {status === 'generating' && active.scenes?.length > 0 && (
+        <SceneGrid scenes={active.scenes} showRetry={false} />
+      )}
+
+      {/* ── Errors ── */}
       {isError && <div className={styles.errorBox}>⚠ {active.error}</div>}
       {isCancelled && <div className={styles.cancelledBox}>Generation was cancelled.</div>}
 
+      {/* ── Done ── */}
       {isDone && active.videoUrl && (
         <div className={styles.doneActions}>
           <VideoPlayer src={active.videoUrl} />
           <div className={styles.doneButtons}>
-            <a href={active.videoUrl} download={`${active.title || 'video'}.webm`} className={styles.downloadBtn}>
-              ⬇ Download
-            </a>
+            <a href={active.videoUrl} download={`${active.title || 'video'}.webm`} className={styles.downloadBtn}>⬇ Download</a>
             <UploadButton active={active} onUploaded={id => setUploadedId(id)} />
           </div>
           {active.youtubeTitle && (
@@ -250,8 +358,6 @@ function ActiveGeneration({ active, cancelGeneration }) {
           <ThumbnailPanel active={active} uploadedVideoId={uploadedId} />
         </div>
       )}
-
-      {active.scenes?.length > 0 && <SceneGrid scenes={active.scenes} />}
     </div>
   );
 }
@@ -273,7 +379,7 @@ function HistoryItem({ item }) {
 }
 
 export default function GenerationsPage() {
-  const { active, history, toasts, dismissToast, cancelGeneration } = useGeneration();
+  const { active, history, toasts, dismissToast, cancelGeneration, approvePhase, retryScene } = useGeneration();
   const hasActive = active && active.status !== null;
   const historyItems = history.filter(h => h.id !== active?.id);
 
@@ -293,7 +399,7 @@ export default function GenerationsPage() {
 
       <div className={styles.body}>
         {hasActive ? (
-          <ActiveGeneration active={active} cancelGeneration={cancelGeneration} />
+          <ActiveGeneration active={active} cancelGeneration={cancelGeneration} approvePhase={approvePhase} retryScene={retryScene} />
         ) : (
           <div className={styles.empty}>
             <div className={styles.emptyIcon}>🎬</div>

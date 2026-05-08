@@ -124,6 +124,18 @@ export const RELIGIOUS_TOPICS = [
   { topic: 'The Ram and Sita story contains one truth about love that no one teaches', angle: 'story', genre: 'religious' },
   { topic: 'Send this to someone who feels like God has forgotten them', angle: 'hope', genre: 'religious' },
   { topic: 'The prayer that has been answered for millions — do you know it?', angle: 'devotion', genre: 'religious' },
+
+  // ── Comedy / Halku ────────────────────────────────────────────────────────
+  { topic: 'Halku ordered chai at a dhaba. It arrived cold. Nobody was prepared for what happened next.', angle: 'tiny problem, catastrophic reaction', genre: 'comedy' },
+  { topic: 'Halku tried to book a train ticket on IRCTC. The website went down 3 times. He did not take it well.', angle: 'relatable Indian tech rage', genre: 'comedy' },
+  { topic: 'Halku\'s neighbour played loud music at 6am. Halku had a plan. The plan escalated quickly.', angle: 'neighbour war', genre: 'comedy' },
+  { topic: 'Halku went to a government office for a simple signature. 47 days later, he was still there.', angle: 'bureaucracy nightmare', genre: 'comedy' },
+  { topic: 'Halku downloaded a 2GB movie on slow WiFi. It disconnected at 99%. Three times.', angle: 'internet rage', genre: 'comedy' },
+  { topic: 'Halku\'s auto driver said "just ₹10 extra" and then it was not just ₹10 extra.', angle: 'auto driver betrayal', genre: 'comedy' },
+  { topic: 'Halku tried to assemble IKEA furniture. The instructions had no words. Only lies.', angle: 'global relatable rage', genre: 'comedy' },
+  { topic: 'Halku was told "the doctor will see you in 10 minutes." He was there for 3 hours. He evolved.', angle: 'waiting room fury', genre: 'comedy' },
+  { topic: 'Halku got into an argument with Google Maps. Maps was wrong. Halku was wronger.', angle: 'navigation disaster', genre: 'comedy' },
+  { topic: 'Halku cooked Maggi and it took exactly 2 minutes. Said no one ever. It took 47 minutes.', angle: '2 minute noodle lie', genre: 'comedy' },
 ];
 
 export const ALL_TOPICS = [...FINANCE_TOPICS, ...SPORTS_TOPICS, ...RELIGIOUS_TOPICS];
@@ -153,6 +165,14 @@ export const CHANNEL_DEFINITIONS = [
     genres: ['religious'],
     desc: 'Faith, devotion & spiritual wisdom',
   },
+  {
+    id: 'comedy',
+    name: 'Comedy Channel',
+    icon: '😂',
+    color: '#10b981',
+    genres: ['comedy'],
+    desc: 'Halku & friends — funny skits that go viral',
+  },
 ];
 
 export const GENRES = [
@@ -161,6 +181,7 @@ export const GENRES = [
   { id: 'stories',    label: '📖 Stories',    desc: 'Real journeys & lessons' },
   { id: 'sports',     label: '🏆 Sports',     desc: 'F1, cricket & highlights' },
   { id: 'religious',  label: '🙏 Spiritual',  desc: 'Faith & devotion' },
+  { id: 'comedy',     label: '😂 Comedy',     desc: 'Halku & viral skits' },
 ];
 
 export function getTopicsByGenre(genre) {

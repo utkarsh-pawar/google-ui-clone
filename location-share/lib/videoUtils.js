@@ -96,9 +96,11 @@ const CHARACTER_APPEARANCE = {
   priya:  'Indian girl 10 years, school uniform, bright curious eyes',
   raja:   'Indian man 50s, dhoti kurta, simple rural setting',
   sita:   'Indian woman 40s, simple saree, traditional household',
+  halku:  'massive green-skinned muscular Indian man, enormous Hulk-like build, wild black hair, bulging furious eyes, torn white dhoti, barefoot',
 };
 
 // characterDefs: { [name]: { appearance, outfit } } — user-defined character registry
+// Character description is placed FIRST in the prompt for maximum model weight
 export function makeImagePrompt(text, styleSuffix, format = FORMATS[0], isHook = false, character = '', characterDefs = {}) {
   const cleaned = text.replace(/[^\w\s,]/g, ' ').slice(0, 200);
   const aspect = format.id === 'portrait'
@@ -106,27 +108,32 @@ export function makeImagePrompt(text, styleSuffix, format = FORMATS[0], isHook =
     : '16:9 aspect ratio, horizontal composition';
   const hookMod = isHook ? ', extreme close-up, dramatic lighting, high contrast, cinematic tension, sharp focus' : '';
 
-  let charDesc = '';
   if (character) {
     const lc = character.toLowerCase();
     const def = characterDefs[lc];
+    let charDesc = '';
     if (def?.appearance) {
-      // User-defined character — inject full locked description for maximum consistency
       const outfitPart = def.outfit ? `, wearing ${def.outfit}` : '';
-      charDesc = `, ${def.appearance}${outfitPart}, same character consistent design, character reference sheet style`;
+      // Exact locked appearance — placed first so model prioritises it
+      charDesc = `${def.appearance}${outfitPart}`;
     } else if (CHARACTER_APPEARANCE[lc]) {
-      charDesc = `, ${CHARACTER_APPEARANCE[lc]}, digital illustration warm colors, character interaction scene`;
-    } else if (!isHook) {
-      charDesc = ', character dialogue scene, digital illustration style, warm colors, expressive faces';
+      charDesc = CHARACTER_APPEARANCE[lc];
+    }
+
+    if (charDesc) {
+      // CHARACTER FIRST → scene action → style → aspect
+      // "consistent character design" anchors visual identity across scenes
+      return `${charDesc}, ${cleaned}, consistent character design same face same outfit, ${styleSuffix}${hookMod}, ${aspect}, high quality`;
     }
   }
 
-  return `${cleaned}${charDesc}, ${styleSuffix}${hookMod}, ${aspect}, high quality`;
+  return `${cleaned}, ${styleSuffix}${hookMod}, ${aspect}, high quality`;
 }
 
-// Routes through our server. idx used to alternate between sources for rate-limit cooldown.
-export function pollinationsUrl(prompt, width = VIDEO_WIDTH, height = VIDEO_HEIGHT, idx = 0) {
-  return `/api/image?prompt=${encodeURIComponent(prompt)}&width=${width}&height=${height}&idx=${idx}`;
+// Routes through our server. seed changes on retry to get a fresh image.
+export function pollinationsUrl(prompt, width = VIDEO_WIDTH, height = VIDEO_HEIGHT, idx = 0, seed = null) {
+  const s = seed ?? Math.floor(Math.random() * 99999);
+  return `/api/image?prompt=${encodeURIComponent(prompt)}&width=${width}&height=${height}&idx=${idx}&seed=${s}`;
 }
 
 export function sleep(ms) {
@@ -608,6 +615,9 @@ export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffe
   if (audioCtx) audioCtx.close();
 
   return new Promise(resolve => {
-    recorder.onstop = () => resolve(URL.createObjectURL(new Blob(chunks, { type: 'video/webm' })));
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: 'video/webm' });
+      resolve({ url: URL.createObjectURL(blob), blob });
+    };
   });
 }
