@@ -102,22 +102,24 @@
   gap: 10px;
   box-shadow: 0 1px 3px rgba(0,0,0,.05);
 }
+.topicAngle { font-size: 11px; font-weight: 600; color: #7c3aed; text-transform: uppercase; letter-spacing: .4px; }
 .topicText { font-size: 14px; font-weight: 500; line-height: 1.45; }
 .topicTags { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag { font-size: 11px; background: #f0fdf4; color: #16a34a; border-radius: 4px; padding: 2px 6px; }
-.copyBtn {
-  padding: 7px 12px;
+.buildBtn {
+  padding: 8px 14px;
   background: #4f46e5;
   color: #fff;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
-  font-weight: 500;
-  transition: background .15s;
+  font-weight: 600;
+  transition: background .15s, transform .1s;
   align-self: flex-start;
+  margin-top: auto;
 }
-.copyBtn:hover { background: #4338ca; }
+.buildBtn:hover { background: #4338ca; transform: translateX(2px); }
 
 .emptyState {
   text-align: center;

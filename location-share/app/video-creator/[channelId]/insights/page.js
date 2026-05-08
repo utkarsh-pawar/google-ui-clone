@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { loadInsights, getInsightsSummary, getTopicsForChannel, scoreUpload } from '@/lib/channelInsights';
 import styles from './page.module.css';
@@ -17,19 +17,18 @@ function ScoreBar({ score }) {
   );
 }
 
-function TopicCard({ item, onCopy }) {
-  const [copied, setCopied] = useState(false);
-  const handleCopy = () => {
-    navigator.clipboard?.writeText(item.topic).catch(() => {});
-    onCopy?.(item.topic);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+function TopicCard({ item, channelId }) {
+  const router = useRouter();
+  const handleBuild = () => {
+    const params = new URLSearchParams({ topic: item.topic, angle: item.angle || 'history' });
+    router.push(`/video-creator/${channelId}?${params.toString()}`);
   };
   return (
     <div className={styles.topicCard}>
+      <div className={styles.topicAngle}>{item.angle === 'comedy' ? '😂 Comedy' : '📖 History'}</div>
       <div className={styles.topicText}>{item.topic}</div>
       <div className={styles.topicTags}>{item.tags?.map(t => <span key={t} className={styles.tag}>{t}</span>)}</div>
-      <button className={styles.copyBtn} onClick={handleCopy}>{copied ? '✅ Copied' : '📋 Use this'}</button>
+      <button className={styles.buildBtn} onClick={handleBuild}>🎬 Build Video →</button>
     </div>
   );
 }
@@ -149,7 +148,7 @@ export default function InsightsPage() {
           </p>
           <div className={styles.topicsGrid}>
             {topics.map((item, i) => (
-              <TopicCard key={i} item={item} />
+              <TopicCard key={i} item={item} channelId={channelId} />
             ))}
           </div>
         </div>

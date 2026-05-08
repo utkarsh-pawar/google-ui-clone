@@ -1,6 +1,6 @@
 'use client';
-import { useState, useCallback } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useGeneration } from '@/context/GenerationContext';
 import Link from 'next/link';
 import { STYLES, FORMATS, TTS_VOICES, splitScenes, sceneDurationFromText } from '@/lib/videoUtils';
@@ -10,7 +10,9 @@ import styles from './page.module.css';
 export default function ChannelVideoCreator() {
   const router = useRouter();
   const { channelId } = useParams();
+  const searchParams = useSearchParams();
   const { startGeneration, active } = useGeneration();
+  const autoTriggered = useRef(false);
 
   const channel = CHANNEL_DEFINITIONS.find(c => c.id === channelId) || CHANNEL_DEFINITIONS[0];
   const channelGenres = GENRES.filter(g => channel.genres.includes(g.id));
@@ -117,6 +119,16 @@ export default function ChannelVideoCreator() {
     });
     router.push('/video-creator/generations');
   }, [pendingScript, style, format, language, speedMultiplier, narration, voice, startGeneration, router, channelId, characters]);
+
+  // Auto-trigger from Insights page: ?topic=...&angle=...
+  useEffect(() => {
+    const topic = searchParams.get('topic');
+    const angle = searchParams.get('angle');
+    if (topic && !autoTriggered.current) {
+      autoTriggered.current = true;
+      handlePickIdea({ topic, angle: angle || 'history' });
+    }
+  }, [searchParams, handlePickIdea]);
 
   const handleGenerate = () => {
     if (!sceneList.length) return;
