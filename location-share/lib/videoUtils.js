@@ -38,6 +38,22 @@ export function getCharacterGender(character) {
   return 'narrator';
 }
 
+// Strip leading "Character:" or "Character (tone):" prefix the AI sometimes writes,
+// and strip surrounding quotes. Keeps the actual spoken/subtitle text clean.
+function cleanNarration(text, character) {
+  let s = text.trim();
+  // Remove surrounding quotes (straight or curly)
+  s = s.replace(/^["'""]|["'""]$/g, '').trim();
+  // Remove leading "Word:" or "Word (anything):" where Word matches character name or common labels
+  const labels = ['narrator', 'halku', character].filter(Boolean).map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  labels.push('narrator', 'narration', 'voice', 'character');
+  const labelRe = new RegExp(`^(${[...new Set(labels)].join('|')})(\\s*\\([^)]*\\))?\\s*:\\s*`, 'i');
+  s = s.replace(labelRe, '').trim();
+  // Remove surrounding quotes again in case they were inside the label
+  s = s.replace(/^["'""]|["'""]$/g, '').trim();
+  return s;
+}
+
 export function splitScenes(script) {
   const hasFormat = /^[SsNn]-/m.test(script);
 
@@ -70,10 +86,10 @@ export function splitScenes(script) {
       const charMatch = raw.match(/^\[([^\]]+)\]\s*([\s\S]*)/);
       if (charMatch) {
         character = charMatch[1].toLowerCase().trim();
-        narration = charMatch[2].trim();
+        narration = cleanNarration(charMatch[2].trim(), character);
       } else {
         character = '';
-        narration = raw;
+        narration = cleanNarration(raw, '');
       }
     }
   }
