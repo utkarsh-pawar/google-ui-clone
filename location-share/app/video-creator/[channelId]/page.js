@@ -135,7 +135,10 @@ export default function ChannelVideoCreator() {
             <div className={styles.subtitle}>Auto-generate · Record · Upload</div>
           </div>
         </div>
-        <Link href={`/video-creator/${channelId}/scheduler`} className={styles.historyLink}>Scheduler →</Link>
+        <div className={styles.headerLinks}>
+          <Link href={`/video-creator/${channelId}/insights`} className={styles.historyLink}>Insights →</Link>
+          <Link href={`/video-creator/${channelId}/scheduler`} className={styles.historyLink}>Scheduler →</Link>
+        </div>
       </header>
 
       <div className={styles.formBody}>

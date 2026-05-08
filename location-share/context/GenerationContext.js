@@ -1,9 +1,10 @@
 'use client';
-import { createContext, useContext, useState, useRef, useCallback } from 'react';
+import { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
 import {
   STYLES, FORMATS, splitScenes, sceneDurationFromText, makeImagePrompt,
   pollinationsUrl, loadImage, loadVideoClip, fetchSceneAudio, renderVideo,
 } from '@/lib/videoUtils';
+import { getImageQueue } from '@/lib/imageQueue';
 
 const GenerationContext = createContext(null);
 const HISTORY_KEY = 'video-generation-history';
@@ -30,9 +31,14 @@ function waitForVisible() {
   });
 }
 
-async function fetchImage(url) {
-  try { return await loadImage(url); }
-  catch { return null; }
+// Fetches a single image, throws on failure so the queue can handle retry/backoff
+async function fetchImageViaQueue(url) {
+  const res = await fetch(url);
+  if (res.status === 429) { const e = new Error('429'); e.status = 429; throw e; }
+  if (!res.ok) throw new Error(`Image ${res.status}`);
+  const ct = res.headers.get('content-type') || '';
+  if (ct.includes('application/json')) throw new Error('AI image failed');
+  return loadImage(url);
 }
 
 export const VIDEO_RATE_LIMITED = Symbol('rate_limited');
@@ -127,34 +133,48 @@ export function GenerationProvider({ children }) {
     setActive(a => {
       if (!a) return a;
       const scenes = [...a.scenes];
-      scenes[idx] = { ...scenes[idx], image: null, error: false, errorMsg: null, retrying: true };
+      scenes[idx] = { ...scenes[idx], image: null, error: false, errorMsg: null, retrying: true, queueStatus: 'queued' };
       return { ...a, scenes };
     });
 
-    setActive(a => {
-      if (!a) return a;
-      const scene = a.scenes[idx];
-      const selectedStyle = STYLES.find(s => s.id === a.style) || STYLES[0];
-      const selectedFormat = FORMATS.find(f => f.id === a.format) || FORMATS[0];
-      const characterDefs = a.characterDefs || {};
-      const imgPrompt = makeImagePrompt(
-        scene.scenePrompt, selectedStyle.suffix, selectedFormat,
-        idx === 0, scene.character || '', characterDefs
-      );
-      // fresh random seed forces a new image
-      const url = pollinationsUrl(imgPrompt, selectedFormat.width, selectedFormat.height, idx);
+    const snap = await new Promise(resolve => setActive(a => { resolve(a); return a; }));
+    if (!snap) return;
 
-      fetchImage(url).then(img => {
-        setActive(b => {
+    const scene = snap.scenes[idx];
+    const selectedStyle = STYLES.find(s => s.id === snap.style) || STYLES[0];
+    const selectedFormat = FORMATS.find(f => f.id === snap.format) || FORMATS[0];
+    const characterDefs = snap.characterDefs || {};
+    const imgPrompt = makeImagePrompt(
+      scene.scenePrompt, selectedStyle.suffix, selectedFormat,
+      idx === 0, scene.character || '', characterDefs
+    );
+    const url = pollinationsUrl(imgPrompt, selectedFormat.width, selectedFormat.height, Date.now());
+
+    const queue = getImageQueue();
+    try {
+      const img = await queue.add(
+        () => fetchImageViaQueue(url),
+        (status, extra) => setActive(b => {
           if (!b) return b;
           const next = [...b.scenes];
-          next[idx] = { ...next[idx], image: img, error: !img, errorMsg: img ? null : 'AI image failed — click retry to try again', retrying: false };
+          next[idx] = { ...next[idx], queueStatus: status, ...(extra || {}) };
           return { ...b, scenes: next };
-        });
+        }),
+      );
+      setActive(b => {
+        if (!b) return b;
+        const next = [...b.scenes];
+        next[idx] = { ...next[idx], image: img, error: !img, errorMsg: img ? null : 'AI image failed — click retry to try again', retrying: false, queueStatus: null };
+        return { ...b, scenes: next };
       });
-
-      return a;
-    });
+    } catch {
+      setActive(b => {
+        if (!b) return b;
+        const next = [...b.scenes];
+        next[idx] = { ...next[idx], image: null, error: true, errorMsg: 'AI image failed — click retry to try again', retrying: false, queueStatus: null };
+        return { ...b, scenes: next };
+      });
+    }
   }, []);
 
   const startGeneration = useCallback(async ({
@@ -199,40 +219,52 @@ export function GenerationProvider({ children }) {
     // ── Phase 1: Images ───────────────────────────────────────────────────────
     let imgDone = 0;
     let videoRateLimited = false;
-    const BATCH = 4;
+    const queue = getImageQueue();
 
-    for (let i = 0; i < rawScenes.length; i += BATCH) {
-      if (abortRef.current) break;
-      const batchIndices = Array.from({ length: Math.min(BATCH, rawScenes.length - i) }, (_, j) => i + j);
+    await Promise.allSettled(rawScenes.map(async (scene, idx) => {
+      if (abortRef.current) return;
 
-      await Promise.allSettled(batchIndices.map(async idx => {
-        const scene = rawScenes[idx];
+      // Mark queued immediately so UI shows position
+      scenes[idx] = { ...rawScenes[idx], image: null, videoUrl: null, videoEl: null, error: false, errorMsg: null, queueStatus: 'queued' };
+      setActive(a => ({ ...a, scenes: [...scenes] }));
 
-        let videoUrl = null;
-        if (!videoRateLimited) {
-          const result = await fetchVideoUrl(scene.scenePrompt, selectedFormat);
-          if (result === VIDEO_RATE_LIMITED) videoRateLimited = true;
-          else videoUrl = result;
+      let videoUrl = null;
+      if (!videoRateLimited) {
+        const result = await fetchVideoUrl(scene.scenePrompt, selectedFormat);
+        if (result === VIDEO_RATE_LIMITED) videoRateLimited = true;
+        else videoUrl = result;
+      }
+
+      let img = null;
+      if (!videoUrl) {
+        const imgPrompt = makeImagePrompt(scene.scenePrompt, selectedStyle.suffix, selectedFormat, idx === 0, scene.character || '', characterDefs);
+        const url = pollinationsUrl(imgPrompt, selectedFormat.width, selectedFormat.height, idx);
+        try {
+          img = await queue.add(
+            () => fetchImageViaQueue(url),
+            (status, extra) => setActive(a => {
+              const next = [...a.scenes];
+              next[idx] = { ...next[idx], queueStatus: status, ...(extra || {}) };
+              return { ...a, scenes: next };
+            }),
+          );
+        } catch {
+          img = null;
         }
+      }
 
-        let img = null;
-        if (!videoUrl) {
-          const imgPrompt = makeImagePrompt(scene.scenePrompt, selectedStyle.suffix, selectedFormat, idx === 0, scene.character || '', characterDefs);
-          img = await fetchImage(pollinationsUrl(imgPrompt, selectedFormat.width, selectedFormat.height, idx));
-        }
-
-        imgDone++;
-        scenes[idx] = {
-          ...rawScenes[idx], image: img, videoUrl: videoUrl || null, videoEl: null,
-          error: !img && !videoUrl,
-          errorMsg: !img && !videoUrl ? 'AI image failed — click ↺ Retry' : null,
-        };
-        setActive(a => ({
-          ...a, scenes: [...scenes],
-          progress: { step: 'Generating images…', current: imgDone, total: rawScenes.length },
-        }));
+      imgDone++;
+      scenes[idx] = {
+        ...rawScenes[idx], image: img, videoUrl: videoUrl || null, videoEl: null,
+        error: !img && !videoUrl,
+        errorMsg: !img && !videoUrl ? 'AI image failed — click ↺ Retry' : null,
+        queueStatus: null,
+      };
+      setActive(a => ({
+        ...a, scenes: [...scenes],
+        progress: { step: 'Generating images…', current: imgDone, total: rawScenes.length },
       }));
-    }
+    }));
 
     if (abortRef.current) { setActive(a => ({ ...a, status: 'cancelled' })); return; }
 

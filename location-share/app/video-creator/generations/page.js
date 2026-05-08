@@ -163,23 +163,35 @@ function ProgressBar({ current, total, step }) {
   );
 }
 
+function sceneStatusLabel(scene) {
+  if (scene.retrying) return { icon: '↺', text: 'Retrying…', cls: 'imgLoading' };
+  if (scene.queueStatus === 'queued') return { icon: '🕐', text: 'Queued…', cls: 'imgLoading' };
+  if (scene.queueStatus === 'running') return { icon: null, text: 'Fetching…', cls: 'imgLoading', spin: true };
+  if (scene.queueStatus === 'retry') return { icon: '↺', text: `Retry ${scene.attempt || ''}…`, cls: 'imgLoading' };
+  if (scene.image) return null;
+  if (scene.error) return { icon: '⚠', text: 'AI failed', cls: 'imgError' };
+  return { icon: null, text: 'Generating…', cls: 'imgLoading', spin: true };
+}
+
 function SceneGrid({ scenes, onRetry, showRetry = false }) {
   if (!scenes?.length) return null;
   return (
     <div className={styles.sceneCards}>
-      {scenes.map((scene, i) => (
+      {scenes.map((scene, i) => {
+        const label = sceneStatusLabel(scene);
+        return (
         <div key={i} className={`${styles.sceneCard} ${scene.error ? styles.sceneCardError : ''}`}>
           <div className={styles.sceneImg}>
-            {scene.retrying ? (
-              <div className={styles.imgLoading}><span className={styles.spinner} /> Retrying…</div>
-            ) : scene.image ? (
-              <img src={scene.image.src} alt={`Scene ${i + 1}`} />
-            ) : scene.error ? (
-              <div className={styles.imgError}>⚠ AI failed</div>
+            {label ? (
+              <div className={styles[label.cls]}>
+                {(label.spin || label.icon === null) && !label.icon && <span className={styles.spinner} />}
+                {label.icon && <span>{label.icon}</span>}
+                {' '}{label.text}
+              </div>
             ) : (
-              <div className={styles.imgLoading}><span className={styles.spinner} /> Generating…</div>
+              <img src={scene.image.src} alt={`Scene ${i + 1}`} />
             )}
-            {showRetry && !scene.retrying && (
+            {showRetry && !scene.retrying && !scene.queueStatus && (
               <button className={styles.retryImgBtn} onClick={() => onRetry?.(i)} title="Regenerate this image">
                 ↺
               </button>
@@ -198,7 +210,8 @@ function SceneGrid({ scenes, onRetry, showRetry = false }) {
             )}
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
