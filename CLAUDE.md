@@ -6,10 +6,9 @@
 
 ## Git Workflow
 
-**After every `git push`, always create a PR to `main`** using the `mcp__github__create_pull_request` tool:
-- `owner`: `utkarsh-pawar`
-- `repo`: `google-ui-clone`
-- `base`: `main`
-- `head`: the branch that was just pushed
+**After every `git push`:**
+1. Create a PR to `main` using `mcp__github__create_pull_request` (or confirm one already exists)
+   - `owner`: `utkarsh-pawar`, `repo`: `google-ui-clone`, `base`: `main`, `head`: the pushed branch
+2. **Immediately merge it** using `mcp__github__merge_pull_request` with `merge_method: squash`
 
-Do this automatically — do not wait to be asked.
+Do both steps automatically — do not wait to be asked.
