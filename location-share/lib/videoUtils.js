@@ -9,7 +9,7 @@ export const FORMATS = [
 ];
 
 export const STYLES = [
-  { id: 'divine',    label: '🕉️ Divine Art', suffix: 'Indian classical divine fine art Raja Ravi Varma masterpiece style, ultra-detailed 8K resolution, luminous golden divine aura, celestial light rays, intricate silk garments and jewellery, rich jewel-toned colors, sacred spiritual atmosphere, museum-quality artwork, no watermark', subtitleStyle: 'bar' },
+  { id: 'divine',    label: '🕉️ Divine Art', suffix: 'Indian classical divine fine art Raja Ravi Varma masterpiece style, ultra-detailed 8K resolution, luminous golden divine aura, celestial light rays, intricate silk garments and jewellery, rich jewel-toned colors, sacred spiritual atmosphere, museum-quality artwork, perfect facial anatomy, sharp clear face, no watermark', subtitleStyle: 'bar' },
   { id: 'comic',     label: '🎨 Comic',     suffix: 'comic book illustration, thick black outlines, exaggerated cartoon expressions, vibrant colors, animated TV series art style, dynamic pose, detailed background, Marvel comic style', subtitleStyle: 'karaoke' },
   { id: 'sketch',    label: '✏️ Sketch',    suffix: 'hand-drawn pencil sketch illustration, rough expressive line art, minimalist black and white drawing on white paper, quick gesture strokes, whiteboard animation style, simple but expressive stickman and character sketches, hand-drawn feel, bold marker outlines', subtitleStyle: 'karaoke' },
   { id: 'cinematic', label: 'Cinematic',    suffix: 'cinematic photography, dramatic lighting, film grain, professional', subtitleStyle: 'bar' },
