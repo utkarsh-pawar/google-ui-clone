@@ -90,9 +90,22 @@ You are a viral spiritual content researcher for a Hindi chants and wisdom chann
 - Kabir dohas, Rahim dohas that are resonating with young Indians
 `;
 
+const COMEDY_TRENDS = `
+You are a viral comedy content researcher for a Hindi comedy Shorts channel targeting Indians (16-35) in May 2026:
+- Everyday Indian frustrations going viral: auto drivers, IRCTC, cold chai, government offices, slow WiFi
+- Relatable family situations: relatives asking about marriage/job, parents vs technology, joint family chaos
+- Current events that can be made funny: IPL drama, election season quirks, price hikes
+- Recurring character skits — introduce a character with ONE defining flaw in a new situation
+- "POV:" formats and "When X happens" formats that make people tag friends
+- Desi workplace humor: office politics, WFH struggles, boss behavior
+- Food frustrations: Zomato delays, restaurant "2 minutes", Maggi situations
+- Traffic, parking, and commute comedy that every Indian relates to
+`;
+
 function getTrendContext(genre) {
-  if (genre === 'sports') return SPORTS_TRENDS;
+  if (genre === 'sports')  return SPORTS_TRENDS;
   if (genre === 'religious') return RELIGIOUS_TRENDS;
+  if (genre === 'comedy')  return COMEDY_TRENDS;
   if (['chants', 'wisdom', 'chanakya'].includes(genre)) return CHANTS_TRENDS;
   return FINANCE_TRENDS;
 }
@@ -103,6 +116,7 @@ const GENRE_INSTRUCTIONS = {
   stories:    'Focus on: real-feeling transformation stories, specific people with specific journeys that feel authentic and relatable.',
   sports:     'Focus on: peak drama, records, rivalries, moments that make fans want to debate and share.',
   religious:  'Focus on: emotional resonance, ancient wisdom solving modern problems, miracle/transformation angles that make people save and share.',
+  comedy:     'Focus on: relatable everyday Indian frustrations, character skits with one defining flaw, "tag a friend" moments, situations every Indian has faced. Topics should feel instantly recognisable.',
   chants:     'Focus on: specific shlokas or chants whose meaning surprises people, mantras trending before festivals, devotional lines that give peace. Write titles in English describing the shloka topic.',
   wisdom:     'Focus on: short wisdom truths that hit hard, morning motivation, life lessons that feel profound. Write titles in English.',
   chanakya:   'Focus on: Chanakya niti quotes shockingly relevant today, practical life lessons, quotes going viral. Write titles in English.',
