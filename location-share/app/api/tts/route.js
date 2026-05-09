@@ -107,9 +107,10 @@ async function fetchGoogleCloudTTS(text, lang, character, style) {
   return Buffer.from(data.audioContent, 'base64');
 }
 
-// ── Google Translate TTS — free, no key, single voice per language ───────────
-async function fetchGoogleTTS(text, lang = 'en') {
-  const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${lang}&total=1&idx=0&textlen=${text.length}&client=tw-ob&prev=input&ttsspeed=0.9`;
+// ── Google Translate TTS — free, no key, no credit card ──────────────────────
+async function fetchGoogleTTS(text, lang = 'en', style = '') {
+  const speed = style === 'spiritual' ? 0.7 : 0.9; // slower for chants/wisdom
+  const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${lang}&total=1&idx=0&textlen=${text.length}&client=tw-ob&prev=input&ttsspeed=${speed}`;
   const res = await fetch(url, {
     headers: {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -180,7 +181,7 @@ export async function GET(request) {
 
   // 3. Google Translate TTS — free, single voice, Hindi works
   try {
-    const audio = await fetchGoogleTTS(text, lang);
+    const audio = await fetchGoogleTTS(text, lang, style);
     return new Response(audio, {
       headers: {
         'Content-Type': 'audio/mpeg',
