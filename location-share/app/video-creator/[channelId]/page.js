@@ -18,9 +18,11 @@ export default function ChannelVideoCreator() {
   const channelGenres = GENRES.filter(g => channel.genres.includes(g.id));
   const defaultGenre = getDefaultGenreForChannel(channelId);
 
+  const HINDI_GENRES = ['chants', 'wisdom', 'chanakya', 'religious'];
   const [genre, setGenre] = useState(defaultGenre);
   const [format, setFormat] = useState('portrait');
-  const [language, setLanguage] = useState('en');
+  const [language, setLanguage] = useState(HINDI_GENRES.includes(defaultGenre) ? 'hi' : 'en');
+  const [showSubtitles, setShowSubtitles] = useState(true);
 
   // Trending ideas state
   const [ideas, setIdeas] = useState([]);
@@ -60,6 +62,9 @@ export default function ChannelVideoCreator() {
     setSelectedIdea(null);
     setPendingScript(null);
     setTitleOptions(null);
+    // Auto-switch to Hindi for spiritual genres
+    if (HINDI_GENRES.includes(g)) setLanguage('hi');
+    else if (HINDI_GENRES.includes(genre)) setLanguage('en'); // switching away from Hindi genre
   };
 
   const handleFetchIdeas = useCallback(async () => {
@@ -110,7 +115,7 @@ export default function ChannelVideoCreator() {
   const handleStartWithTitle = useCallback((title) => {
     startGeneration({
       script: pendingScript.script || '',
-      style, format, language, speedMultiplier, narration, voice, genre,
+      style, format, language, speedMultiplier, narration, voice, genre, showSubtitles,
       titleText: pendingScript.suggestedTitle || '',
       youtubeTitle: title,
       youtubeDescription: pendingScript.description || '',
@@ -132,7 +137,7 @@ export default function ChannelVideoCreator() {
 
   const handleGenerate = () => {
     if (!sceneList.length) return;
-    startGeneration({ script, style, format, language, speedMultiplier, narration, voice, genre, titleText, youtubeTitle, youtubeDescription, youtubeTags, channelId, characters });
+    startGeneration({ script, style, format, language, speedMultiplier, narration, voice, genre, showSubtitles, titleText, youtubeTitle, youtubeDescription, youtubeTags, channelId, characters });
     router.push('/video-creator/generations');
   };
 
@@ -379,6 +384,19 @@ export default function ChannelVideoCreator() {
                   ))}
                 </div>
               )}
+            </div>
+
+            <div className={styles.settingRow}>
+              <label className={styles.narrationToggle}>
+                <div className={`${styles.toggleTrack} ${showSubtitles ? styles.toggleOn : ''}`}>
+                  <input type="checkbox" checked={showSubtitles} onChange={e => setShowSubtitles(e.target.checked)} className={styles.toggleInput} />
+                  <span className={styles.toggleThumb} />
+                </div>
+                <span className={styles.narrationLabel}>
+                  Subtitles
+                  <span className={styles.narrationHint}>show text overlay on video</span>
+                </span>
+              </label>
             </div>
           </div>
 

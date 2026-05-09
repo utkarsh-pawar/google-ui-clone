@@ -181,6 +181,7 @@ export function GenerationProvider({ children }) {
     script, style, format, language = 'en', speedMultiplier, narration, voice,
     titleText, youtubeTitle, youtubeDescription, youtubeTags, channelId,
     genre = '',
+    showSubtitles = true,
     characters = [],
     autoUpload = false,
     onComplete = null,
@@ -334,6 +335,7 @@ export function GenerationProvider({ children }) {
         audioBuffers, selectedFormat, titleText || '',
         selectedStyle.subtitleStyle || 'bar',
         style,
+        showSubtitles,
       );
 
       // Append top hashtags to YouTube title (YouTube shows them as clickable links)
