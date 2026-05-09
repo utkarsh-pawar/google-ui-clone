@@ -59,26 +59,31 @@ async function fetchElevenLabs(text, character) {
   return await res.arrayBuffer();
 }
 
-// ── Google Cloud TTS — optional, requires billing ───────────────────────────
+// ── Google Cloud TTS — Wavenet voices (free 1M chars/mo) ────────────────────
+// Wavenet is far more natural than Standard — use it for all Hindi content
 function getGoogleCloudVoice(lang, gender) {
   if (lang === 'hi') {
-    if (gender === 'male')     return { languageCode: 'hi-IN', name: 'hi-IN-Standard-B' };
-    if (gender === 'narrator') return { languageCode: 'hi-IN', name: 'hi-IN-Standard-D' };
-    return { languageCode: 'hi-IN', name: 'hi-IN-Standard-A' };
+    // Wavenet first, Neural2 is even better but costs more
+    if (gender === 'male')     return { languageCode: 'hi-IN', name: 'hi-IN-Wavenet-B' }; // deep, authoritative
+    if (gender === 'narrator') return { languageCode: 'hi-IN', name: 'hi-IN-Wavenet-D' }; // warm female narrator
+    if (gender === 'child')    return { languageCode: 'hi-IN', name: 'hi-IN-Wavenet-A' }; // bright
+    return { languageCode: 'hi-IN', name: 'hi-IN-Wavenet-A' };                            // female
   }
-  if (gender === 'male') return { languageCode: 'en-US', name: 'en-US-Standard-D' };
-  return { languageCode: 'en-US', name: 'en-US-Standard-C' };
+  if (gender === 'male') return { languageCode: 'en-US', name: 'en-US-Wavenet-D' };
+  return { languageCode: 'en-US', name: 'en-US-Wavenet-C' };
 }
 
-async function fetchGoogleCloudTTS(text, lang, character) {
+async function fetchGoogleCloudTTS(text, lang, character, style) {
   const apiKey = process.env.GOOGLE_TTS_KEY;
   if (!apiKey) throw new Error('No GOOGLE_TTS_KEY');
 
-  const gender = getGender(character);
-  const voice  = getGoogleCloudVoice(lang, gender);
+  const gender  = getGender(character);
+  const voice   = getGoogleCloudVoice(lang, gender);
   const isChild = gender === 'child';
-  const speakingRate = isChild ? 1.1 : gender === 'male' ? 0.88 : 0.92;
-  const pitch = isChild ? 3 : gender === 'male' ? -2 : 0;
+  const isSpiritual = style === 'spiritual';
+  // Spiritual content needs slower, more meditative pacing
+  const speakingRate = isChild ? 1.05 : isSpiritual ? 0.78 : gender === 'male' ? 0.88 : 0.92;
+  const pitch = isChild ? 3 : isSpiritual ? -1 : gender === 'male' ? -2 : 0;
 
   const res = await fetch(
     `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
@@ -137,6 +142,7 @@ export async function GET(request) {
   const voice     = searchParams.get('voice')     || 'Brian';
   const lang      = searchParams.get('lang')      || 'en';
   const character = searchParams.get('character') || '';
+  const style     = searchParams.get('style')     || '';
 
   if (!text) return new Response('Missing text', { status: 400 });
 
@@ -159,7 +165,7 @@ export async function GET(request) {
   // 2. Google Cloud TTS — multi-voice Hindi/English (GOOGLE_TTS_KEY, requires billing)
   if (process.env.GOOGLE_TTS_KEY) {
     try {
-      const audio = await fetchGoogleCloudTTS(text, lang, character);
+      const audio = await fetchGoogleCloudTTS(text, lang, character, style);
       return new Response(audio, {
         headers: {
           'Content-Type': 'audio/mpeg',
