@@ -60,9 +60,9 @@ const GENRE_INSTRUCTIONS = {
   stories:    'Focus on: real-feeling transformation stories, specific people with specific journeys that feel authentic and relatable.',
   sports:     'Focus on: peak drama, records, rivalries, moments that make fans want to debate and share.',
   religious:  'Focus on: emotional resonance, ancient wisdom solving modern problems, miracle/transformation angles that make people save and share.',
-  chants:     'Focus on: specific shlokas or chants whose meaning surprises people, mantras trending before festivals, devotional lines that give peace. Write topic titles in Hindi.',
-  wisdom:     'Focus on: short Hindi wisdom lines that hit hard, morning motivation truths, life lessons that feel profound in 6 words. Write topic titles in Hindi.',
-  chanakya:   'Focus on: Chanakya niti quotes that are shockingly relevant today, practical life lessons, quotes going viral on WhatsApp. Write topic titles in Hindi.',
+  chants:     'Focus on: specific shlokas or chants whose meaning surprises people, mantras trending before festivals, devotional lines that give peace. Write titles in English describing the shloka topic.',
+  wisdom:     'Focus on: short wisdom truths that hit hard, morning motivation, life lessons that feel profound. Write titles in English.',
+  chanakya:   'Focus on: Chanakya niti quotes shockingly relevant today, practical life lessons, quotes going viral. Write titles in English.',
 };
 
 export async function POST(request) {
@@ -73,8 +73,9 @@ export async function POST(request) {
 
   const trendContext = getTrendContext(genre);
   const genreInstruction = GENRE_INSTRUCTIONS[genre] || GENRE_INSTRUCTIONS.finance;
-  const isHindiGenre = ['chants', 'wisdom', 'chanakya'].includes(genre);
-  const langNote = (language === 'hi' || isHindiGenre) ? 'Write topic titles in Hindi (Devanagari). Keep whyTrending and hook in English.' : '';
+  // Always write trending idea titles in English — Llama/Cerebras corrupts Devanagari.
+  // The script generator handles Hindi narration separately.
+  const langNote = '';
 
   const systemPrompt = `${trendContext}
 Your job: generate 10 trending video topic ideas that would perform well RIGHT NOW on YouTube Shorts.
