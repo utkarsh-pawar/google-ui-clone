@@ -180,6 +180,7 @@ export function GenerationProvider({ children }) {
   const startGeneration = useCallback(async ({
     script, style, format, language = 'en', speedMultiplier, narration, voice,
     titleText, youtubeTitle, youtubeDescription, youtubeTags, channelId,
+    genre = '',
     characters = [],
     autoUpload = false,
     onComplete = null,
@@ -285,8 +286,9 @@ export function GenerationProvider({ children }) {
         progress: { step: 'Generating narration…', current: 0, total: rawScenes.length },
       }));
 
+      const ttsStyle = ['chants', 'wisdom', 'chanakya', 'religious'].includes(genre) ? 'spiritual' : '';
       const audioResults = await Promise.allSettled(
-        rawScenes.map(scene => fetchSceneAudio(scene.narration || scene.scenePrompt, voice || 'Brian', language, scene.character || ''))
+        rawScenes.map(scene => fetchSceneAudio(scene.narration || scene.scenePrompt, voice || 'Brian', language, scene.character || '', ttsStyle))
       );
       audioBuffers = audioResults.map(r => r.status === 'fulfilled' ? r.value : null);
 

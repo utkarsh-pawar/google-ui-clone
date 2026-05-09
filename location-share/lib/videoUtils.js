@@ -313,10 +313,10 @@ export async function processInBatches(items, processor, {
   return results;
 }
 
-export async function fetchSceneAudio(text, voice = 'Brian', lang = 'en', character = '') {
+export async function fetchSceneAudio(text, voice = 'Brian', lang = 'en', character = '', style = '') {
   try {
     const res = await fetch(
-      `/api/tts?voice=${voice}&lang=${lang}&text=${encodeURIComponent(text.slice(0, 400))}&character=${encodeURIComponent(character)}`
+      `/api/tts?voice=${voice}&lang=${lang}&text=${encodeURIComponent(text.slice(0, 400))}&character=${encodeURIComponent(character)}&style=${encodeURIComponent(style)}`
     );
     if (!res.ok) return null;
     return await res.arrayBuffer();

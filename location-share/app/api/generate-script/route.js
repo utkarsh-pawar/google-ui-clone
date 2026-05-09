@@ -152,10 +152,39 @@ COMEDY VIRALITY TRIGGERS:
 ${VIRALITY_STRUCTURE}
 Always respond with valid JSON only. No markdown, no explanation.`;
 
+const CHANTS_SYSTEM = `You are a master spiritual content creator making deeply moving Hindi YouTube Shorts about shlokas, wisdom, and ancient teachings. Your videos make people pause, feel peace, and save the video to watch again.
+
+LANGUAGE RULE: Write ALL narration in Hindi (Devanagari script). Sanskrit shlokas in original Sanskrit, then Hindi meaning. No English in N- lines.
+
+CORE RULE — visual-narration sync:
+Every S- image must SHOW exactly what the N- line SAYS or FEELS.
+
+SCENE WRITING RULES:
+- ONE thought per N- line. Max 10 Hindi words. Slow, meditative, powerful.
+- S- must be visually divine: lotus, sacred fire, temple, deity, nature at dawn, golden light, Ganga, prayer hands.
+- SCENE 1: Extreme close-up — deity's eyes, flame in darkness, devotee's tear, hands folded in prayer. Never a wide shot.
+- Let silence breathe between lines — short lines feel more profound than long ones.
+- Connect the ancient teaching to what the viewer is feeling RIGHT NOW (loss, fear, loneliness, hope).
+- End with a line so beautiful people screenshot it.
+
+CONTENT STRUCTURE for chants/wisdom:
+  Shlokas: Sanskrit line → Hindi transliteration feel → meaning in simple Hindi → why it matters today
+  Chanakya: Quote the niti → Hindi meaning → one modern example → life lesson
+  Wisdom: Single truth → why people forget it → how to remember it → the change it makes
+
+HOOK PATTERNS:
+  a) Ancient answer to modern pain: "क्या आप थके हुए हैं? गीता में इसका जवाब है।"
+  b) Surprising wisdom: "चाणक्य ने 2300 साल पहले कहा था — आज भी सच है।"
+  c) Emotional open: Start mid-feeling. "जब सब छोड़ देते हैं, तो भगवान पास आते हैं।"
+  d) Curiosity gap: "हनुमान चालीसा की एक पंक्ति जो आपकी ज़िंदगी बदल सकती है।"
+${VIRALITY_STRUCTURE}
+Always respond with valid JSON only. No markdown, no explanation.`;
+
 function getBaseSystem(genre) {
   if (genre === 'sports') return SPORTS_SYSTEM;
   if (genre === 'religious') return RELIGIOUS_SYSTEM;
   if (genre === 'comedy') return COMEDY_SYSTEM;
+  if (['chants', 'wisdom', 'chanakya'].includes(genre)) return CHANTS_SYSTEM;
   return FINANCE_SYSTEM;
 }
 
@@ -213,6 +242,37 @@ const GENRE_INSTRUCTIONS = {
   - End with a line that makes them want to save and share: "send this to someone who needs this today"
   Title formula: "What [deity/scripture] says about [modern problem]" / "The prayer that changed [specific situation]"`,
 
+  chants: `Genre: SHLOKAS & CHANTS (Hindi).
+  Virality angle: Give them the PEACE and MEANING they can't find anywhere on social media.
+  - Write ALL narration in Hindi. Sanskrit shlokas in original Sanskrit first, then Hindi meaning.
+  - Open with the shloka line or chant — let its beauty be the hook.
+  - Explain meaning in simple, modern Hindi — like a wise elder explaining to their grandchild.
+  - Connect to a feeling the viewer has RIGHT NOW: loneliness, failure, doubt, gratitude.
+  - End with a line so beautiful people screenshot and share: "इसे उसे भेजो जिसे इसकी ज़रूरत है।"
+  - Language: Hindi (Devanagari). Keep scenes short — 8 words max per N- line.
+  Title formula (in Hindi): "गीता का वो श्लोक जो [modern struggle] का जवाब है" / "[deity] ने कहा था..."`,
+
+  wisdom: `Genre: HINDI WORDS OF WISDOM / MORNING MOTIVATION.
+  Virality angle: Give them the one line they needed to hear today.
+  - Write ALL narration in Hindi. Short, punchy, profound lines — 6-8 words each.
+  - Open with the wisdom statement itself — bold, direct, unavoidable.
+  - Each scene adds depth: story, example, contrast, consequence.
+  - Speak to the viewer directly: "आप", "आपकी", "आपके लिए".
+  - Make the last scene screenshot-worthy — a complete thought that works standalone.
+  - End: "इसे save करें — जब मन टूटे, इसे पढ़ें।"
+  Title formula: "[Short profound Hindi statement]" / "जो लोग [quality] रखते हैं वो [outcome] पाते हैं"`,
+
+  chanakya: `Genre: CHANAKYA NITI (Hindi).
+  Virality angle: Ancient practical wisdom that feels shockingly relevant today.
+  - Write ALL narration in Hindi. Quote Chanakya in Sanskrit/Hindi, then decode it.
+  - Scene 1: The Chanakya quote — state it boldly like a fact.
+  - Scenes 2-4: Break down what it means in 2026, with a real-world Indian example.
+  - Scenes 5-7: The mistake people make by ignoring this niti.
+  - Scenes 8-10: The result when you apply it. End with the "aha" moment.
+  - Make it feel like insider knowledge — "Chanakya knew this 2300 years ago."
+  - End: "Chanakya was right. Share this with someone who needs to hear it."
+  Title formula: "चाणक्य का वो नियम जो [modern situation] बदल देगा" / "चाणक्य ने कहा: [quote in Hindi]"`,
+
   comedy: `Genre: COMEDY SKIT WITH RECURRING CHARACTERS.
   Virality angle: Make them laugh so hard they tag someone instantly.
 
@@ -244,11 +304,17 @@ const SPORTS_TAGS = ['#f1', '#formula1', '#sports', '#shorts', '#cricket', '#f12
 const RELIGIOUS_TAGS = ['#bhagavadgita', '#spiritual', '#devotional', '#hindu', '#shorts', '#faith', '#meditation', '#hanumanchalisa', '#godisgreat', '#viral'];
 const FINANCE_TAGS = ['#personalfinance', '#moneytips', '#shorts', '#financetips', '#wealthbuilding', '#indianfinance', '#financialfreedom', '#moneymindset', '#investing', '#viral'];
 const COMEDY_TAGS = ['#funny', '#comedy', '#halku', '#indiancomedy', '#shorts', '#memes', '#relatable', '#desi', '#trending', '#viral'];
+const CHANTS_TAGS = ['#bhagavadgita', '#chanakyaniti', '#shorts', '#spiritual', '#hindiwisdom', '#motivation', '#gita', '#hanumanchalisa', '#sanatan', '#viral'];
+const WISDOM_TAGS = ['#hindimotivation', '#shorts', '#wisdom', '#lifelessons', '#spiritual', '#positive', '#mindset', '#india', '#trending', '#viral'];
+const CHANAKYA_TAGS = ['#chanakyaniti', '#shorts', '#chanakya', '#lifelessons', '#wisdom', '#success', '#motivation', '#india', '#trending', '#viral'];
 
 function getDefaultTags(genre) {
-  if (genre === 'sports') return SPORTS_TAGS;
+  if (genre === 'sports')   return SPORTS_TAGS;
   if (genre === 'religious') return RELIGIOUS_TAGS;
-  if (genre === 'comedy') return COMEDY_TAGS;
+  if (genre === 'comedy')   return COMEDY_TAGS;
+  if (genre === 'chants')   return CHANTS_TAGS;
+  if (genre === 'wisdom')   return WISDOM_TAGS;
+  if (genre === 'chanakya') return CHANAKYA_TAGS;
   return FINANCE_TAGS;
 }
 

@@ -110,7 +110,7 @@ export default function ChannelVideoCreator() {
   const handleStartWithTitle = useCallback((title) => {
     startGeneration({
       script: pendingScript.script || '',
-      style, format, language, speedMultiplier, narration, voice,
+      style, format, language, speedMultiplier, narration, voice, genre,
       titleText: pendingScript.suggestedTitle || '',
       youtubeTitle: title,
       youtubeDescription: pendingScript.description || '',
@@ -132,7 +132,7 @@ export default function ChannelVideoCreator() {
 
   const handleGenerate = () => {
     if (!sceneList.length) return;
-    startGeneration({ script, style, format, language, speedMultiplier, narration, voice, titleText, youtubeTitle, youtubeDescription, youtubeTags, channelId, characters });
+    startGeneration({ script, style, format, language, speedMultiplier, narration, voice, genre, titleText, youtubeTitle, youtubeDescription, youtubeTags, channelId, characters });
     router.push('/video-creator/generations');
   };
 

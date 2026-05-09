@@ -166,6 +166,14 @@ export const CHANNEL_DEFINITIONS = [
     desc: 'Faith, devotion & spiritual wisdom',
   },
   {
+    id: 'chants',
+    name: 'Chants & Wisdom',
+    icon: '🕉️',
+    color: '#a855f7',
+    genres: ['chants', 'wisdom', 'chanakya'],
+    desc: 'Shlokas, Chanakya niti & Hindi words of wisdom',
+  },
+  {
     id: 'comedy',
     name: 'Comedy Channel',
     icon: '😂',
@@ -182,6 +190,9 @@ export const GENRES = [
   { id: 'sports',     label: '🏆 Sports',     desc: 'F1, cricket & highlights' },
   { id: 'religious',  label: '🙏 Spiritual',  desc: 'Faith & devotion' },
   { id: 'comedy',     label: '😂 Comedy',     desc: 'Halku & viral skits' },
+  { id: 'chants',     label: '🕉️ Shlokas',   desc: 'Gita, Hanuman Chalisa, chants' },
+  { id: 'wisdom',     label: '🌸 Wisdom',     desc: 'Hindi words of wisdom, affirmations' },
+  { id: 'chanakya',   label: '📜 Chanakya',   desc: 'Chanakya niti & life lessons' },
 ];
 
 export function getTopicsByGenre(genre) {
