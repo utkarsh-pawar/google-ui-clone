@@ -479,7 +479,7 @@ function drawHookTitle(ctx, text, W, H) {
 }
 
 // sceneDurations: number (uniform) or number[] (per-scene). audioBuffers: ArrayBuffer[]|null[]
-export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffers = [], format = FORMATS[0], scriptTitle = '', subtitleStyle = 'bar', styleId = '') {
+export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffers = [], format = FORMATS[0], scriptTitle = '', subtitleStyle = 'bar', styleId = '', showSubtitles = true) {
   const W = format.width;
   const H = format.height;
   const canvas = document.createElement('canvas');
@@ -605,10 +605,10 @@ export async function renderVideo(scenes, sceneDurations, onProgress, audioBuffe
       ctx.fillRect(0, 0, W, H);
       ctx.globalAlpha = 1;
 
-      // Subtitle — karaoke (2-word center) or bar (bottom bar)
-      if (subtitleStyle === 'karaoke') {
+      // Subtitle — karaoke (2-word center) or bar (bottom bar), optional
+      if (showSubtitles && subtitleStyle === 'karaoke') {
         drawKaraokeSubtitle(ctx, scene.narration || scene.text || '', W, H, p, styleId === 'sketch');
-      } else {
+      } else if (showSubtitles) {
         drawSubtitle(ctx, scene.narration || scene.text || '', W, H, p, i === 0);
       }
       if (i === 0 && scriptTitle) drawHookTitle(ctx, scriptTitle, W, H);
