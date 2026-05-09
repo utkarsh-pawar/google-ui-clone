@@ -302,6 +302,14 @@
 .formatToggleBtnActive { border-color: var(--accent); background: rgba(99,102,241,0.15); color: var(--text); }
 .formatHint { font-size: 10px; color: var(--dim); font-weight: 500; letter-spacing: 0.05em; }
 
+.deitySelect {
+  width: 100%; padding: 10px 12px; border-radius: 8px;
+  background: var(--card); border: 1px solid var(--border);
+  color: var(--text); font-size: 14px; cursor: pointer;
+  appearance: auto;
+}
+.deitySelect:focus { outline: none; border-color: var(--accent); }
+
 /* Trending ideas */
 .trendingHeader { display: flex; align-items: center; justify-content: space-between; }
 

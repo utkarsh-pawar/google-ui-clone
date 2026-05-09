@@ -156,6 +156,16 @@ const CHANTS_SYSTEM = `You are a master spiritual content creator making deeply 
 
 LANGUAGE RULE: Write ALL narration in Hindi (Devanagari script). Sanskrit shlokas in original Sanskrit, then Hindi meaning. No English in N- lines.
 
+CRITICAL SCRIPTURE ACCURACY — NEVER get these wrong:
+- BHAGAVAD GITA: Lord KRISHNA speaks to ARJUNA on Kurukshetra battlefield. Ram has NO role in Gita.
+- RAMAYAN: LORD RAM's story — Ram, Sita, Hanuman, Lakshmana, Ravan, Bharat. Krishna does NOT appear in Ramayan.
+- MAHABHARATA: Pandavas vs Kauravas. Krishna is Arjuna's guide/charioteer. Ram is NOT in Mahabharata.
+- HANUMAN CHALISA: 40 verses about Hanuman's devotion to Lord Ram. Not about Krishna, not about Gita.
+- CHANAKYA NITI: Practical life wisdom by Acharya Chanakya. No deity appears — purely philosophical.
+- SRIMAD BHAGAVATAM: Krishna's stories — Bal Leela (childhood), Mathura, Vrindavan, Dwarka.
+- NEVER say Ram spoke in Gita. NEVER say Krishna appears in Ramayan. NEVER mix characters between texts.
+- If unsure which scripture a verse belongs to — do not mention a scripture name. Just share the wisdom.
+
 CORE RULE — visual-narration sync:
 Every S- image must SHOW exactly what the N- line SAYS or FEELS.
 S- lines are fed to an AI image generator. Write them in English. Make them hyper-detailed and visually specific.
@@ -165,12 +175,11 @@ IMAGE QUALITY RULES FOR S- LINES:
 - Always name Hanuman as: "Lord Hanuman muscular divine form, saffron orange complexion, devotional expression, gada mace raised, tail curled above"
 - Always name Shiva as: "Lord Shiva matted jata hair with crescent moon, third eye, blue throat, tiger skin, sacred ash, trident"
 - Always name Ganesh as: "Lord Ganesha elephant head, four divine arms, saffron silk, modak, curved trunk, lotus throne"
-- Always name Rama as: "Lord Rama divine blue complexion, royal crown, Gandiva bow, noble serene expression, yellow silk"
+- Always name Rama as: "Lord Rama divine blue complexion, royal crown, bow and arrow, noble serene expression, yellow silk"
 - Always name Chanakya as: "Acharya Chanakya ancient wise sage, shaved head, simple robes, piercing intelligent eyes, holding scroll of wisdom"
-- For temples: describe specific architectural details — "golden shikhara spire, intricate stone carvings, flower garlands, oil lamps glowing"
+- For temples: "golden shikhara spire, intricate stone carvings, flower garlands, oil lamps glowing"
 - For nature scenes: "Ganga at dawn, golden mist, lotus flowers, prayer lamps floating, pink and gold sky"
-- For devotees: "devotee with tear-filled eyes, hands folded in prayer, forehead tilted slightly, divine golden light washing over face"
-- For abstract wisdom: make it visual — "ancient manuscript open on lotus leaf, Sanskrit verses glowing gold, celestial light"
+- For devotees: "devotee with tear-filled eyes, hands folded in prayer, forehead tilted, divine golden light washing over face"
 
 SCENE WRITING RULES:
 - ONE thought per N- line. Max 10 Hindi words. Slow, meditative, powerful.
@@ -331,8 +340,10 @@ function getDefaultTags(genre) {
 }
 
 export async function POST(request) {
-  const { topic, angle, genre = 'finance', format = 'portrait', language = 'en', characters = [] } = await request.json();
+  const { topic, angle, genre = 'finance', format = 'portrait', language = 'en', characters = [], deity = '' } = await request.json();
   if (!topic) return Response.json({ error: 'Missing topic' }, { status: 400 });
+  // Prepend deity focus so the AI stays on the right god throughout the script
+  const effectiveTopic = deity ? `${deity} — ${topic}` : topic;
 
   const apiKey = process.env.CEREBRAS_API_KEY;
   if (!apiKey) return Response.json({ error: 'CEREBRAS_API_KEY not set' }, { status: 500 });
@@ -388,7 +399,7 @@ ${characters.map(c => {
 CONSISTENCY RULE: Never paraphrase a character's appearance — copy the exact string every time they appear in an S- prompt.`
     : '';
 
-  const userPrompt = `Write a maximum-virality YouTube script about: "${topic}"
+  const userPrompt = `Write a maximum-virality YouTube script about: "${effectiveTopic}"
 Angle: ${angle || 'most viral possible'}
 ${formatNote}
 ${langNote}${charBlock}

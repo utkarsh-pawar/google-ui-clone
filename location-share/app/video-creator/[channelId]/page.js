@@ -5,6 +5,7 @@ import { useGeneration } from '@/context/GenerationContext';
 import Link from 'next/link';
 import { STYLES, FORMATS, TTS_VOICES, splitScenes, sceneDurationFromText } from '@/lib/videoUtils';
 import { CHANNEL_DEFINITIONS, GENRES, getDefaultGenreForChannel } from '@/lib/financeTopics';
+import { HINDU_GODS } from '@/lib/hinduGods';
 import styles from './page.module.css';
 
 export default function ChannelVideoCreator() {
@@ -19,7 +20,9 @@ export default function ChannelVideoCreator() {
   const defaultGenre = getDefaultGenreForChannel(channelId);
 
   const HINDI_GENRES = ['chants', 'wisdom', 'chanakya', 'religious'];
+  const SPIRITUAL_GENRES = ['chants', 'wisdom', 'chanakya'];
   const [genre, setGenre] = useState(defaultGenre);
+  const [selectedDeity, setSelectedDeity] = useState('');
   const [format, setFormat] = useState('portrait');
   const [language, setLanguage] = useState(HINDI_GENRES.includes(defaultGenre) ? 'hi' : 'en');
   const [showSubtitles, setShowSubtitles] = useState(true);
@@ -64,7 +67,8 @@ export default function ChannelVideoCreator() {
     setTitleOptions(null);
     // Auto-switch to Hindi and Divine Art style for spiritual genres
     if (HINDI_GENRES.includes(g)) { setLanguage('hi'); setStyle('divine'); }
-    else if (HINDI_GENRES.includes(genre)) { setLanguage('en'); setStyle(STYLES[1].id); } // reset to comic when leaving spiritual
+    else if (HINDI_GENRES.includes(genre)) { setLanguage('en'); setStyle(STYLES[1].id); }
+    setSelectedDeity('');
   };
 
   const handleFetchIdeas = useCallback(async () => {
@@ -77,7 +81,7 @@ export default function ChannelVideoCreator() {
       const res = await fetch('/api/trending-ideas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ genre, channelId, language }),
+        body: JSON.stringify({ genre, channelId, language, deity: selectedDeity }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -87,7 +91,7 @@ export default function ChannelVideoCreator() {
     } finally {
       setLoadingIdeas(false);
     }
-  }, [genre, channelId, language]);
+  }, [genre, channelId, language, selectedDeity]);
 
   const handlePickIdea = useCallback(async (idea) => {
     setSelectedIdea(idea);
@@ -98,7 +102,7 @@ export default function ChannelVideoCreator() {
       const res = await fetch('/api/generate-script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: idea.topic, angle: idea.angle, genre, format, language, characters }),
+        body: JSON.stringify({ topic: idea.topic, angle: idea.angle, genre, format, language, characters, deity: selectedDeity }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -110,7 +114,7 @@ export default function ChannelVideoCreator() {
     } finally {
       setGenerating(false);
     }
-  }, [genre, format, language]);
+  }, [genre, format, language, selectedDeity]);
 
   const handleStartWithTitle = useCallback((title) => {
     startGeneration({
@@ -215,10 +219,31 @@ export default function ChannelVideoCreator() {
             </div>
           </div>
 
+          {/* Deity selector — spiritual genres only */}
+          {SPIRITUAL_GENRES.includes(genre) && (
+            <div className={styles.autoSection}>
+              <div className={styles.autoLabel}>Focus on a Deity (optional)</div>
+              <select
+                className={styles.deitySelect}
+                value={selectedDeity}
+                onChange={e => { setSelectedDeity(e.target.value); setIdeas([]); setSelectedIdea(null); setPendingScript(null); setTitleOptions(null); }}
+              >
+                <option value="">— All Deities —</option>
+                {HINDU_GODS.map(group => (
+                  <optgroup key={group.group} label={group.group}>
+                    {group.gods.map(god => (
+                      <option key={god} value={god}>{god}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Trending Ideas */}
           <div className={styles.autoSection}>
             <div className={styles.trendingHeader}>
-              <div className={styles.autoLabel}>Trending Ideas</div>
+              <div className={styles.autoLabel}>Trending Ideas{selectedDeity ? ` — ${selectedDeity}` : ''}</div>
               {ideas.length > 0 && (
                 <button className={styles.refreshBtn} onClick={handleFetchIdeas} disabled={loadingIdeas}>
                   {loadingIdeas ? '…' : '↻ Refresh'}
