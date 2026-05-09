@@ -40,7 +40,7 @@ export default function ChannelVideoCreator() {
   const [youtubeTitle, setYoutubeTitle] = useState('');
   const [youtubeDescription, setYoutubeDescription] = useState('');
   const [youtubeTags, setYoutubeTags] = useState([]);
-  const [style, setStyle] = useState(STYLES[0].id);
+  const [style, setStyle] = useState(HINDI_GENRES.includes(defaultGenre) ? 'divine' : STYLES[0].id);
   const [speedMultiplier, setSpeedMultiplier] = useState(1);
   const [narration, setNarration] = useState(true);
   const [voice, setVoice] = useState(TTS_VOICES[0].id);
@@ -62,9 +62,9 @@ export default function ChannelVideoCreator() {
     setSelectedIdea(null);
     setPendingScript(null);
     setTitleOptions(null);
-    // Auto-switch to Hindi for spiritual genres
-    if (HINDI_GENRES.includes(g)) setLanguage('hi');
-    else if (HINDI_GENRES.includes(genre)) setLanguage('en'); // switching away from Hindi genre
+    // Auto-switch to Hindi and Divine Art style for spiritual genres
+    if (HINDI_GENRES.includes(g)) { setLanguage('hi'); setStyle('divine'); }
+    else if (HINDI_GENRES.includes(genre)) { setLanguage('en'); setStyle(STYLES[1].id); } // reset to comic when leaving spiritual
   };
 
   const handleFetchIdeas = useCallback(async () => {
