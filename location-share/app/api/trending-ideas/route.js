@@ -123,11 +123,11 @@ const GENRE_INSTRUCTIONS = {
 };
 
 export async function POST(request) {
-  const { genre = 'finance', channelId = 'general', language = 'en' } = await request.json();
+  const { genre = 'finance', channelId = 'general', language = 'en', deity = '' } = await request.json();
 
-  // Spiritual genres: return curated bilingual topics (Hindi + English) directly.
-  // Skips the LLM call — Cerebras/Llama cannot write Devanagari reliably.
-  if (['chants', 'wisdom', 'chanakya'].includes(genre)) {
+  // Spiritual genres with no deity filter: return curated bilingual topics directly.
+  // When a deity is selected, fall through to LLM so ideas are deity-specific.
+  if (['chants', 'wisdom', 'chanakya'].includes(genre) && !deity) {
     return Response.json({ ideas: getSpiritualIdeas(genre) });
   }
 
@@ -149,8 +149,10 @@ ${genreInstruction}
 ${langNote}
 Always respond with valid JSON only. No markdown, no explanation.`;
 
-  const userPrompt = `Generate exactly 10 trending YouTube Shorts topic ideas for a ${genre} channel. Current date: May 2026.
+  const deityNote = deity ? `DEITY FOCUS: ALL 10 ideas must be specifically about ${deity}. Every topic must mention ${deity} by name. Do not include other deities.` : '';
 
+  const userPrompt = `Generate exactly 10 trending YouTube Shorts topic ideas for a ${genre} channel. Current date: May 2026.
+${deityNote}
 Each idea must feel timely — something people are searching for or talking about RIGHT NOW.
 
 Return JSON:
