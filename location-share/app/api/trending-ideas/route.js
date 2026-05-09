@@ -73,9 +73,12 @@ export async function POST(request) {
 
   const trendContext = getTrendContext(genre);
   const genreInstruction = GENRE_INSTRUCTIONS[genre] || GENRE_INSTRUCTIONS.finance;
-  // Always write trending idea titles in English — Llama/Cerebras corrupts Devanagari.
-  // The script generator handles Hindi narration separately.
-  const langNote = '';
+  const isHindiGenre = ['chants', 'wisdom', 'chanakya'].includes(genre);
+  // Llama cannot output Devanagari reliably — use Roman-script Hindi (Hinglish) instead.
+  // e.g. "Hanuman Chalisa ki vo line jo dar door karta hai" — sounds Hindi, renders fine.
+  const langNote = (language === 'hi' || isHindiGenre)
+    ? 'Write topic titles in Roman-script Hindi (Hinglish transliteration) — NOT Devanagari, NOT English. Example: "Bhagavad Gita ka vo shlok jo aapka dard khatam kar dega". Keep hook and whyTrending in English.'
+    : '';
 
   const systemPrompt = `${trendContext}
 Your job: generate 10 trending video topic ideas that would perform well RIGHT NOW on YouTube Shorts.
