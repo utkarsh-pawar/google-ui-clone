@@ -420,7 +420,7 @@ Return JSON only:
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'llama3.1-70b',
+        model: 'llama3.1-8b',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
