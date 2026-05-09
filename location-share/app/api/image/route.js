@@ -56,9 +56,15 @@ async function fetchHuggingFace(prompt, width, height) {
 
 async function fetchPollinations(prompt, width, height, seed) {
   const { w, h } = aiSize(width, height);
+  // flux model: far better face anatomy and deity detail than default SDXL
+  const negative = 'deformed face, distorted eyes, extra limbs, blurry, low quality, watermark, text, logo, ugly, bad anatomy, mutated hands';
+  const params = new URLSearchParams({
+    width: w, height: h, nologo: 'true', seed, enhance: 'true',
+    model: 'flux', negative_prompt: negative,
+  });
   const res = await fetch(
-    `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&seed=${seed}&enhance=true`,
-    { signal: AbortSignal.timeout(50000) }
+    `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?${params}`,
+    { signal: AbortSignal.timeout(55000) }
   );
   if (!res.ok) throw new Error(`Pollinations ${res.status}`);
   return await res.arrayBuffer();

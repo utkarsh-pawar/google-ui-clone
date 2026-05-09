@@ -420,13 +420,13 @@ Return JSON only:
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'llama3.1-8b',
+        model: 'llama-3.3-70b',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        max_tokens: 2000,
-        temperature: 0.95,
+        max_tokens: 3000,
+        temperature: 0.85,
         response_format: { type: 'json_object' },
       }),
       signal: AbortSignal.timeout(25000),
