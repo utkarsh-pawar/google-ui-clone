@@ -11,7 +11,7 @@ export async function GET() {
     ELEVENLABS_API_KEY: elevenlabs ? `set (${elevenlabs.slice(0, 8)}...)` : 'NOT SET — get free key at elevenlabs.io',
     GOOGLE_TTS_KEY:     googleTts  ? `set (${googleTts.slice(0, 8)}...)`  : 'NOT SET',
     CEREBRAS_API_KEY:   process.env.CEREBRAS_API_KEY ? `set (${process.env.CEREBRAS_API_KEY.slice(0, 8)}...)` : 'NOT SET',
-    script_model:       'llama-3.3-70b (upgraded)',
+    script_model:       'llama3.3-70b (upgraded)',
     image_model:        'flux via pollinations',
     YOUTUBE_CLIENT_ID:  process.env.YOUTUBE_CLIENT_ID  ? 'set' : 'NOT SET',
     YOUTUBE_CLIENT_SECRET: process.env.YOUTUBE_CLIENT_SECRET ? 'set' : 'NOT SET',
