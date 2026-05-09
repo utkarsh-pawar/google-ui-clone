@@ -158,11 +158,23 @@ LANGUAGE RULE: Write ALL narration in Hindi (Devanagari script). Sanskrit shloka
 
 CORE RULE — visual-narration sync:
 Every S- image must SHOW exactly what the N- line SAYS or FEELS.
+S- lines are fed to an AI image generator. Write them in English. Make them hyper-detailed and visually specific.
+
+IMAGE QUALITY RULES FOR S- LINES:
+- Always name the deity with FULL canonical description. Never just "Krishna" — write: "Lord Krishna with divine blue complexion, peacock feather crown, yellow silk dhoti, golden flute, serene lotus eyes, divine golden aura"
+- Always name Hanuman as: "Lord Hanuman muscular divine form, saffron orange complexion, devotional expression, gada mace raised, tail curled above"
+- Always name Shiva as: "Lord Shiva matted jata hair with crescent moon, third eye, blue throat, tiger skin, sacred ash, trident"
+- Always name Ganesh as: "Lord Ganesha elephant head, four divine arms, saffron silk, modak, curved trunk, lotus throne"
+- Always name Rama as: "Lord Rama divine blue complexion, royal crown, Gandiva bow, noble serene expression, yellow silk"
+- Always name Chanakya as: "Acharya Chanakya ancient wise sage, shaved head, simple robes, piercing intelligent eyes, holding scroll of wisdom"
+- For temples: describe specific architectural details — "golden shikhara spire, intricate stone carvings, flower garlands, oil lamps glowing"
+- For nature scenes: "Ganga at dawn, golden mist, lotus flowers, prayer lamps floating, pink and gold sky"
+- For devotees: "devotee with tear-filled eyes, hands folded in prayer, forehead tilted slightly, divine golden light washing over face"
+- For abstract wisdom: make it visual — "ancient manuscript open on lotus leaf, Sanskrit verses glowing gold, celestial light"
 
 SCENE WRITING RULES:
 - ONE thought per N- line. Max 10 Hindi words. Slow, meditative, powerful.
-- S- must be visually divine: lotus, sacred fire, temple, deity, nature at dawn, golden light, Ganga, prayer hands.
-- SCENE 1: Extreme close-up — deity's eyes, flame in darkness, devotee's tear, hands folded in prayer. Never a wide shot.
+- SCENE 1: Extreme close-up — deity's luminous eyes, flame in darkness, devotee's tear. Never a wide shot. Use "divine golden backlight" or "temple lamp glow".
 - Let silence breathe between lines — short lines feel more profound than long ones.
 - Connect the ancient teaching to what the viewer is feeling RIGHT NOW (loss, fear, loneliness, hope).
 - End with a line so beautiful people screenshot it.

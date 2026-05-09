@@ -9,6 +9,7 @@ export const FORMATS = [
 ];
 
 export const STYLES = [
+  { id: 'divine',    label: '🕉️ Divine Art', suffix: 'Indian classical divine fine art Raja Ravi Varma masterpiece style, ultra-detailed 8K resolution, luminous golden divine aura, celestial light rays, intricate silk garments and jewellery, rich jewel-toned colors, sacred spiritual atmosphere, museum-quality artwork, no watermark', subtitleStyle: 'bar' },
   { id: 'comic',     label: '🎨 Comic',     suffix: 'comic book illustration, thick black outlines, exaggerated cartoon expressions, vibrant colors, animated TV series art style, dynamic pose, detailed background, Marvel comic style', subtitleStyle: 'karaoke' },
   { id: 'sketch',    label: '✏️ Sketch',    suffix: 'hand-drawn pencil sketch illustration, rough expressive line art, minimalist black and white drawing on white paper, quick gesture strokes, whiteboard animation style, simple but expressive stickman and character sketches, hand-drawn feel, bold marker outlines', subtitleStyle: 'karaoke' },
   { id: 'cinematic', label: 'Cinematic',    suffix: 'cinematic photography, dramatic lighting, film grain, professional', subtitleStyle: 'bar' },
@@ -17,6 +18,43 @@ export const STYLES = [
   { id: 'documentary', label: 'Documentary', suffix: 'documentary photography, real, authentic, natural lighting', subtitleStyle: 'bar' },
   { id: 'abstract',  label: 'Abstract',     suffix: 'abstract art, colorful, modern design, visual metaphor', subtitleStyle: 'bar' },
 ];
+
+// Canonical visual descriptions for Hindu deities — injected into image prompts automatically
+const DEITY_DESCRIPTIONS = {
+  krishna:    'Lord Krishna divine blue complexion peacock feather crown yellow silk dhoti golden flute divine serene smile lotus eyes four arms',
+  shri:       'Lord Krishna divine blue complexion peacock feather crown yellow silk dhoti golden flute divine serene smile',
+  radha:      'Radha divine beauty adorned with flower garlands pink silk saree devotional love serene expression',
+  shiva:      'Lord Shiva matted jata hair crescent moon third eye blue throat sacred ash tiger skin serpent necklace trident Ganga flowing',
+  shankar:    'Lord Shiva matted jata hair crescent moon third eye blue throat sacred ash tiger skin trident',
+  hanuman:    'Lord Hanuman muscular divine form saffron orange complexion devotional expression sacred janeu thread gada mace tail raised',
+  bajrangbali:'Lord Hanuman muscular divine form saffron orange complexion devotional expression gada mace',
+  ganesh:     'Lord Ganesha elephant head deity four divine arms saffron silk modak sweet curved trunk lotus feet',
+  ganesha:    'Lord Ganesha elephant head deity four divine arms saffron silk modak sweet curved trunk lotus feet',
+  rama:       'Lord Rama divine blue complexion royal crown sacred thread bow and arrow serene noble expression yellow silk dhoti',
+  ram:        'Lord Rama divine blue complexion royal crown sacred thread bow and arrow serene noble expression yellow silk dhoti',
+  sita:       'Sita Mata graceful divine beauty silk saree gentle serene expression pure devotion golden ornaments',
+  durga:      'Goddess Durga ten arms wielding divine weapons riding golden lion fierce beautiful form red golden silk defeat of evil',
+  lakshmi:    'Goddess Lakshmi radiant divine beauty pink lotus throne gold coins red silk saree divine golden glow eight arms',
+  saraswati:  'Goddess Saraswati pure white silk divine veena instrument lotus throne white swan book of knowledge gentle serene',
+  vishnu:     'Lord Vishnu divine blue complexion four arms Sudarshana Chakra Shankha conch lotus Kaumodaki mace yellow silk divine crown',
+  brahma:     'Lord Brahma four heads four arms Vedas lotus throne white beard divine golden crown celestial',
+  indra:      'Lord Indra king of gods Vajra thunderbolt white elephant Airavata royal divine crown celestial court',
+  arjun:      'Arjuna warrior divine archer Gandiva bow Kurukshetra battlefield royal Kshatriya armor crown',
+  arjuna:     'Arjuna warrior divine archer Gandiva bow Kurukshetra battlefield royal Kshatriya armor crown',
+  chanakya:   'Acharya Chanakya ancient wise sage shaved head simple robes sharp piercing eyes scroll of wisdom austere scholarly',
+};
+
+function injectDeityDescription(text) {
+  const lower = text.toLowerCase();
+  for (const [key, desc] of Object.entries(DEITY_DESCRIPTIONS)) {
+    if (lower.includes(key)) {
+      // Replace the bare name with its full canonical description
+      const re = new RegExp(`\\b${key}\\b`, 'gi');
+      return text.replace(re, desc);
+    }
+  }
+  return text;
+}
 
 export const TTS_VOICES = [
   { id: 'Brian', label: 'Brian (UK Male)' },
@@ -119,11 +157,15 @@ const CHARACTER_APPEARANCE = {
 // characterDefs: { [name]: { appearance, outfit } } — user-defined character registry
 // Character description is placed FIRST in the prompt for maximum model weight
 export function makeImagePrompt(text, styleSuffix, format = FORMATS[0], isHook = false, character = '', characterDefs = {}) {
-  const cleaned = text.replace(/[^\w\s,]/g, ' ').slice(0, 200);
+  // Inject canonical deity descriptions before cleaning special chars
+  const enhanced = injectDeityDescription(text);
+  const cleaned = enhanced.replace(/[^\w\s,]/g, ' ').slice(0, 350);
   const aspect = format.id === 'portrait'
     ? '9:16 aspect ratio, vertical composition, portrait orientation'
     : '16:9 aspect ratio, horizontal composition';
   const hookMod = isHook ? ', extreme close-up, dramatic lighting, high contrast, cinematic tension, sharp focus' : '';
+  const isDivine = styleSuffix.includes('Raja Ravi Varma');
+  const qualityBoost = isDivine ? ', masterpiece, award-winning, ultra-detailed, 8K, no text, no watermark' : ', high quality';
 
   if (character) {
     const lc = character.toLowerCase();
@@ -131,20 +173,17 @@ export function makeImagePrompt(text, styleSuffix, format = FORMATS[0], isHook =
     let charDesc = '';
     if (def?.appearance) {
       const outfitPart = def.outfit ? `, wearing ${def.outfit}` : '';
-      // Exact locked appearance — placed first so model prioritises it
       charDesc = `${def.appearance}${outfitPart}`;
     } else if (CHARACTER_APPEARANCE[lc]) {
       charDesc = CHARACTER_APPEARANCE[lc];
     }
 
     if (charDesc) {
-      // CHARACTER FIRST → scene action → style → aspect
-      // "consistent character design" anchors visual identity across scenes
-      return `${charDesc}, ${cleaned}, consistent character design same face same outfit, ${styleSuffix}${hookMod}, ${aspect}, high quality`;
+      return `${charDesc}, ${cleaned}, consistent character design same face same outfit, ${styleSuffix}${hookMod}, ${aspect}${qualityBoost}`;
     }
   }
 
-  return `${cleaned}, ${styleSuffix}${hookMod}, ${aspect}, high quality`;
+  return `${cleaned}, ${styleSuffix}${hookMod}, ${aspect}${qualityBoost}`;
 }
 
 // Routes through our server. seed changes on retry to get a fresh image.
