@@ -35,9 +35,22 @@ You are a viral devotional content researcher for a spiritual channel targeting 
 - Pilgrimage routes going viral on Instagram/YouTube
 `;
 
+const CHANTS_TRENDS = `
+You are a viral spiritual content researcher for a Hindi chants and wisdom channel targeting Indian audiences in May 2026:
+- Bhagavad Gita shlokas that are trending on Instagram Reels and YouTube Shorts
+- Hanuman Chalisa, Gayatri Mantra, Mahamrityunjaya Mantra — lines people are searching their meaning for
+- Chanakya niti quotes going viral on WhatsApp and Twitter
+- Modern problems (job stress, loneliness, family pressure, money anxiety) that ancient wisdom addresses
+- Upcoming Hindu festivals in the next 30 days — content people search before the festival
+- Sanskrit shlokas whose Hindi meanings are surprising or deeply moving
+- Morning motivation content in Hindi that is getting massive saves and shares
+- Kabir dohas, Rahim dohas that are resonating with young Indians
+`;
+
 function getTrendContext(genre) {
   if (genre === 'sports') return SPORTS_TRENDS;
   if (genre === 'religious') return RELIGIOUS_TRENDS;
+  if (['chants', 'wisdom', 'chanakya'].includes(genre)) return CHANTS_TRENDS;
   return FINANCE_TRENDS;
 }
 
@@ -47,6 +60,9 @@ const GENRE_INSTRUCTIONS = {
   stories:    'Focus on: real-feeling transformation stories, specific people with specific journeys that feel authentic and relatable.',
   sports:     'Focus on: peak drama, records, rivalries, moments that make fans want to debate and share.',
   religious:  'Focus on: emotional resonance, ancient wisdom solving modern problems, miracle/transformation angles that make people save and share.',
+  chants:     'Focus on: specific shlokas or chants whose meaning surprises people, mantras trending before festivals, devotional lines that give peace. Write topic titles in Hindi.',
+  wisdom:     'Focus on: short Hindi wisdom lines that hit hard, morning motivation truths, life lessons that feel profound in 6 words. Write topic titles in Hindi.',
+  chanakya:   'Focus on: Chanakya niti quotes that are shockingly relevant today, practical life lessons, quotes going viral on WhatsApp. Write topic titles in Hindi.',
 };
 
 export async function POST(request) {
@@ -57,7 +73,8 @@ export async function POST(request) {
 
   const trendContext = getTrendContext(genre);
   const genreInstruction = GENRE_INSTRUCTIONS[genre] || GENRE_INSTRUCTIONS.finance;
-  const langNote = language === 'hi' ? 'Write topic titles in Hindi (Devanagari). Keep whyTrending and hook in English.' : '';
+  const isHindiGenre = ['chants', 'wisdom', 'chanakya'].includes(genre);
+  const langNote = (language === 'hi' || isHindiGenre) ? 'Write topic titles in Hindi (Devanagari). Keep whyTrending and hook in English.' : '';
 
   const systemPrompt = `${trendContext}
 Your job: generate 10 trending video topic ideas that would perform well RIGHT NOW on YouTube Shorts.
