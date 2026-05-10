@@ -1,7 +1,7 @@
 export async function GET(request) {
   const { searchParams, protocol, host } = new URL(request.url);
-  const code = searchParams.get('code');
-  const error = searchParams.get('error');
+  const code      = searchParams.get('code');
+  const error     = searchParams.get('error');
   const channelId = searchParams.get('state') || 'general';
 
   if (error || !code) {
@@ -9,7 +9,7 @@ export async function GET(request) {
       { headers: { 'Content-Type': 'text/html' } });
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}//${host}`;
+  const appUrl      = process.env.NEXT_PUBLIC_APP_URL || `${protocol}//${host}`;
   const redirectUri = `${appUrl}/api/youtube/callback`;
 
   const res = await fetch('https://oauth2.googleapis.com/token', {
@@ -17,10 +17,10 @@ export async function GET(request) {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       code,
-      client_id: process.env.YOUTUBE_CLIENT_ID || '',
+      client_id:     process.env.YOUTUBE_CLIENT_ID     || '',
       client_secret: process.env.YOUTUBE_CLIENT_SECRET || '',
-      redirect_uri: redirectUri,
-      grant_type: 'authorization_code',
+      redirect_uri:  redirectUri,
+      grant_type:    'authorization_code',
     }),
   });
 
@@ -28,6 +28,16 @@ export async function GET(request) {
   if (!res.ok) {
     return new Response(`<html><body><h2>❌ Token error: ${data.error_description}</h2></body></html>`,
       { headers: { 'Content-Type': 'text/html' } });
+  }
+
+  // Save refresh token server-side so cron can upload to YouTube without the browser
+  if (data.refresh_token) {
+    try {
+      const { saveYouTubeToken } = await import('@/lib/serverPipeline.js');
+      await saveYouTubeToken(channelId, data.refresh_token);
+    } catch (e) {
+      console.warn('Failed to save YouTube token to Redis:', e.message);
+    }
   }
 
   const html = `<!DOCTYPE html>
@@ -38,6 +48,7 @@ export async function GET(request) {
 <body>
 <div style="font-size:48px">✅</div>
 <h2>YouTube Channel Connected!</h2>
+<p style="color:#94a3b8">Token saved — server will auto-upload on schedule.</p>
 <p style="color:#94a3b8">Redirecting…</p>
 <script>
   const channelId = ${JSON.stringify(channelId)};
@@ -45,7 +56,7 @@ export async function GET(request) {
   localStorage.setItem('yt_access_token_' + channelId, ${JSON.stringify(data.access_token)});
   localStorage.setItem('yt_token_expiry_' + channelId, exp);
   ${data.refresh_token ? `localStorage.setItem('yt_refresh_token_' + channelId, ${JSON.stringify(data.refresh_token)});` : ''}
-  setTimeout(() => { window.location = '/video-creator/' + channelId + '/scheduler'; }, 1500);
+  setTimeout(() => { window.location = '/auto-studio'; }, 1800);
 </script>
 </body>
 </html>`;
