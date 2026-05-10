@@ -339,6 +339,64 @@ function getDefaultTags(genre) {
   return FINANCE_TAGS;
 }
 
+// Try to pull a valid JSON object out of a potentially truncated/malformed string
+function extractJSON(text) {
+  if (!text) return null;
+  try { return JSON.parse(text); } catch {}
+  const start = text.indexOf('{');
+  const end   = text.lastIndexOf('}');
+  if (start !== -1 && end > start) {
+    try { return JSON.parse(text.slice(start, end + 1)); } catch {}
+  }
+  return null;
+}
+
+async function tryGenerate(llmUrl, llmKey, llmModel, systemPrompt, userPrompt, attempt) {
+  const res = await fetch(llmUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${llmKey}` },
+    body: JSON.stringify({
+      model: llmModel,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user',   content: userPrompt   },
+      ],
+      max_tokens: 3000,
+      temperature: attempt === 0 ? 0.85 : 0.65, // cool down on retries
+      response_format: { type: 'json_object' },
+    }),
+    signal: AbortSignal.timeout(attempt === 0 ? 22000 : 18000),
+  });
+
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => '');
+    let errData = {};
+    try { errData = JSON.parse(errBody); } catch {}
+
+    // Groq sends the partial output in failed_generation — try to salvage it
+    const failedGen = errData?.error?.failed_generation;
+    if (failedGen) {
+      const salvaged = extractJSON(failedGen);
+      if (salvaged?.script) return salvaged;
+    }
+
+    const code = errData?.error?.code || '';
+    const msg  = errData?.error?.message || `HTTP ${res.status}`;
+    const retryable = code === 'json_validate_failed' || res.status >= 500;
+    throw Object.assign(new Error(`${msg} | body: ${errBody.slice(0, 200)}`), { retryable });
+  }
+
+  const data = await res.json();
+  const raw  = data.choices?.[0]?.message?.content?.trim() || '';
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const salvaged = extractJSON(raw);
+    if (salvaged?.script) return salvaged;
+    throw Object.assign(new Error('JSON parse failed after generation'), { retryable: true });
+  }
+}
+
 export async function POST(request) {
   const { topic, angle, genre = 'finance', format = 'portrait', language = 'en', characters = [], deity = '' } = await request.json();
   if (!topic) return Response.json({ error: 'Missing topic' }, { status: 400 });
@@ -424,45 +482,25 @@ Return JSON only:
 }`;
 
   try {
-    // Groq (llama-3.3-70b) is primary — free, faster, much better quality
-    // Falls back to Cerebras llama3.1-8b if GROQ_API_KEY not set
-    const groqKey = process.env.GROQ_API_KEY;
+    const groqKey   = process.env.GROQ_API_KEY;
     const useCerebras = !groqKey;
-
     const llmUrl    = useCerebras ? 'https://api.cerebras.ai/v1/chat/completions' : 'https://api.groq.com/openai/v1/chat/completions';
     const llmKey    = useCerebras ? apiKey : groqKey;
     const llmModel  = useCerebras ? 'llama3.1-8b' : 'llama-3.3-70b-versatile';
 
-    const res = await fetch(llmUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${llmKey}`,
-      },
-      body: JSON.stringify({
-        model: llmModel,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        max_tokens: 3000,
-        temperature: 0.85,
-        response_format: { type: 'json_object' },
-      }),
-      signal: AbortSignal.timeout(25000),
-    });
-
-    if (!res.ok) {
-      const errBody = await res.text().catch(() => '');
-      const provider = useCerebras ? 'Cerebras' : 'Groq';
-      let errMsg = `${provider} ${res.status}`;
-      try { errMsg = JSON.parse(errBody)?.error?.message || errMsg; } catch {}
-      throw new Error(`${errMsg} | body: ${errBody.slice(0, 300)}`);
+    let parsed = null;
+    let lastErr = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        parsed = await tryGenerate(llmUrl, llmKey, llmModel, systemPrompt, userPrompt, attempt);
+        break;
+      } catch (err) {
+        lastErr = err;
+        if (!err.retryable || attempt === 2) break;
+        await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+      }
     }
-
-    const data = await res.json();
-    const raw = data.choices?.[0]?.message?.content?.trim() || '';
-    const parsed = JSON.parse(raw);
+    if (!parsed) throw lastErr;
 
     if (!Array.isArray(parsed.titleOptions) || parsed.titleOptions.length === 0) {
       parsed.titleOptions = [parsed.youtubeTitle || topic];
