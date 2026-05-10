@@ -6,6 +6,13 @@
 export const maxDuration = 60;
 export const runtime = 'nodejs';
 
+async function getRecentTopicsFromKV() {
+  try {
+    const { getRecentTopics } = await import('@/app/api/queue/route.js');
+    return await getRecentTopics();
+  } catch { return []; }
+}
+
 export async function GET(request) {
   const secret = process.env.CRON_SECRET;
   if (secret && request.headers.get('authorization') !== `Bearer ${secret}`) {
@@ -15,6 +22,8 @@ export async function GET(request) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
   try {
+    const recentTopics = await getRecentTopicsFromKV();
+
     // Channel Manager decides today's topic and generates the script
     const res = await fetch(`${appUrl}/api/channel-manager`, {
       method: 'POST',
@@ -22,7 +31,7 @@ export async function GET(request) {
       body: JSON.stringify({
         channelId: 'chants',
         autoQueue: true,
-        recentTopics: [], // TODO: pull from DB/KV store to avoid repeats
+        recentTopics,
       }),
       signal: AbortSignal.timeout(55000),
     });
