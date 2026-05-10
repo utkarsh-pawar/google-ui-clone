@@ -35,7 +35,15 @@ export default function ChannelSchedulerPage() {
   const [countdown, setCountdown] = useState('');
   const [nextSlot, setNextSlot] = useState(null);
   const [runningIdx, setRunningIdx] = useState(null);
-  const [log, setLog] = useState([]);
+  const [log, setLog] = useState(() => {
+    if (typeof window === 'undefined') return [];
+    try { return JSON.parse(localStorage.getItem('scheduler_log') || '[]'); } catch { return []; }
+  });
+  const [processedToday, setProcessedToday] = useState(() => {
+    if (typeof window === 'undefined') return [];
+    const key = `processed_${new Date().toDateString()}`;
+    try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
+  });
   const runningRef = useRef(false);
 
   // Posting schedule
@@ -51,7 +59,21 @@ export default function ChannelSchedulerPage() {
   }, []);
 
   const addLog = useCallback((msg) => {
-    setLog(l => [`${new Date().toLocaleTimeString()} — ${msg}`, ...l].slice(0, 30));
+    const line = `${new Date().toLocaleTimeString()} — ${msg}`;
+    setLog(l => {
+      const next = [line, ...l].slice(0, 50);
+      try { localStorage.setItem('scheduler_log', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, []);
+
+  const addProcessed = useCallback((entry) => {
+    setProcessedToday(prev => {
+      const next = [entry, ...prev];
+      const key = `processed_${new Date().toDateString()}`;
+      try { localStorage.setItem(key, JSON.stringify(next)); } catch {}
+      return next;
+    });
   }, []);
 
   useEffect(() => {
@@ -77,25 +99,28 @@ export default function ChannelSchedulerPage() {
     return () => clearInterval(id);
   }, [scheduleSlots]);
 
-  // Auto-trigger: fires at each scheduled UTC hour if autoMode is on
-  const triggerAutoGenerate = useCallback(async (topicObj, slotHour) => {
+  // Auto-trigger: fires at each scheduled IST slot if autoMode is on
+  const triggerAutoGenerate = useCallback(async (topicObj, slotLabel) => {
     if (runningRef.current) return;
     runningRef.current = true;
-    addLog(`🚀 Auto-generating for slot ${slotHour}:00 UTC — "${topicObj.topic.slice(0, 50)}…"`);
+    const shortTitle = topicObj.topic.slice(0, 50);
+    addLog(`🚀 Auto-generating for ${slotLabel} IST — "${shortTitle}…"`);
 
     try {
+      const lang = channelId === 'chants' ? 'hi' : 'en';
       const res = await fetch('/api/generate-script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: topicObj.topic, angle: topicObj.angle, genre: topicObj.genre, format: 'portrait', language: 'en' }),
+        body: JSON.stringify({ topic: topicObj.topic, angle: topicObj.angle, genre: topicObj.genre, deity: topicObj.deity || '', format: 'portrait', language: lang }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       addLog(`✅ Script ready — starting render`);
 
+      const publishAt = getNextPublishTime().toISOString();
       await startGeneration({
         script: data.script,
-        style: channel.id === 'comedy' ? 'comic' : 'cinematic',
+        style: channelId === 'comedy' ? 'comic' : 'divine',
         format: 'portrait',
         speedMultiplier: 1,
         narration: true,
@@ -106,21 +131,25 @@ export default function ChannelSchedulerPage() {
         youtubeTags: data.tags || [],
         channelId,
         autoUpload: ytConnected,
+        publishAt,
+        deity: topicObj.deity || '',
+        angle: topicObj.angle || '',
+        topic: topicObj.topic || '',
         onComplete: (result) => {
-          addLog(result.ytVideoUrl
-            ? `🎉 Uploaded: ${result.ytVideoUrl}`
-            : `📁 Rendered — upload skipped (YouTube not connected)`
-          );
+          const status = result.ytVideoUrl
+            ? `🎉 Scheduled: ${result.ytVideoUrl} → ${formatPublishTime(new Date(publishAt))}`
+            : `📁 Rendered locally`;
+          addLog(status);
+          addProcessed({ title: data.youtubeTitle || topicObj.topic, url: result.ytVideoUrl || null, publishAt, slot: slotLabel, at: new Date().toISOString() });
           setUploadHistory(getUploadHistory().filter(h => h.channelId === channelId));
           runningRef.current = false;
-          router.push('/video-creator/generations');
         },
       });
     } catch (err) {
       addLog(`❌ Failed: ${err.message}`);
       runningRef.current = false;
     }
-  }, [addLog, startGeneration, ytConnected, channelId, channel, router]);
+  }, [addLog, addProcessed, startGeneration, ytConnected, channelId, router]);
 
   // Check every 60s if any schedule slot is now (within 2 min window)
   useEffect(() => {
@@ -137,8 +166,8 @@ export default function ChannelSchedulerPage() {
         if (localStorage.getItem(key)) continue;
         localStorage.setItem(key, '1');
         const topics = getTopicsByChannelId(channelId);
-        const slotIdx = Math.floor(Date.now() / (8 * 3600 * 1000)) % topics.length;
-        triggerAutoGenerate(topics[slotIdx], slot);
+        const slotIdx = Math.floor(Date.now() / 86400000) % topics.length;
+        triggerAutoGenerate(topics[slotIdx], formatIST(slot));
       }
     };
     check();
@@ -171,9 +200,11 @@ export default function ChannelSchedulerPage() {
             channelId, autoUpload: ytConnected, publishAt,
             deity: job.deity || '', angle: job.angle || '', topic: job.topic || '',
             onComplete: (result) => {
-              addLog(result.ytVideoUrl
+              const status = result.ytVideoUrl
                 ? `🎉 Scheduled: ${result.ytVideoUrl} → ${formatPublishTime(new Date(publishAt))}`
-                : `📁 Rendered`);
+                : `📁 Rendered locally`;
+              addLog(status);
+              addProcessed({ title: job.youtubeTitle || job.topic || 'Video', url: result.ytVideoUrl || null, publishAt, slot: 'cron', at: new Date().toISOString() });
               setUploadHistory(getUploadHistory().filter(h => h.channelId === channelId));
             },
           });
@@ -369,15 +400,54 @@ export default function ChannelSchedulerPage() {
             : <div className={styles.notConnected}>Connect once → all future videos upload automatically.</div>}
         </div>
 
-        {/* Activity log */}
-        {log.length > 0 && (
-          <div className={styles.card}>
-            <div className={styles.cardTitle}>📋 Activity Log</div>
-            <div className={styles.logList}>
-              {log.map((line, i) => <div key={i} className={styles.logLine}>{line}</div>)}
-            </div>
+        {/* Processed today */}
+        <div className={styles.card}>
+          <div className={styles.cardHeader}>
+            <div className={styles.cardTitle}>📹 Processed Today</div>
+            {processedToday.length > 0 && (
+              <button className={styles.clearBtn} onClick={() => {
+                setProcessedToday([]);
+                try { localStorage.removeItem(`processed_${new Date().toDateString()}`); } catch {}
+              }}>Clear</button>
+            )}
           </div>
-        )}
+          {processedToday.length === 0
+            ? <div className={styles.emptyHint}>Nothing processed yet today. Turn on Auto-mode or click ▶ Now on a topic below.</div>
+            : processedToday.map((p, i) => (
+              <div key={i} className={styles.processedRow}>
+                <div className={styles.processedLeft}>
+                  <div className={styles.processedTitle}>{p.title}</div>
+                  <div className={styles.processedMeta}>
+                    {p.slot !== 'cron' ? `Slot: ${p.slot} IST` : 'via cron'}
+                    {p.publishAt && ` · Publishes: ${formatPublishTime(new Date(p.publishAt))}`}
+                  </div>
+                </div>
+                {p.url
+                  ? <a href={p.url} target="_blank" rel="noopener noreferrer" className={styles.ytLink}>View ↗</a>
+                  : <span className={styles.localBadge}>Local</span>}
+              </div>
+            ))
+          }
+        </div>
+
+        {/* Activity log */}
+        <div className={styles.card}>
+          <div className={styles.cardHeader}>
+            <div className={styles.cardTitle}>📋 Activity Log</div>
+            {log.length > 0 && (
+              <button className={styles.clearBtn} onClick={() => {
+                setLog([]);
+                try { localStorage.removeItem('scheduler_log'); } catch {}
+              }}>Clear</button>
+            )}
+          </div>
+          <div className={styles.logList}>
+            {log.length === 0
+              ? <div className={styles.emptyHint}>No activity yet. Logs appear here when videos are generated or scheduled.</div>
+              : log.map((line, i) => <div key={i} className={styles.logLine}>{line}</div>)
+            }
+          </div>
+        </div>
 
         {/* 7-Day Queue */}
         <div className={styles.card}>

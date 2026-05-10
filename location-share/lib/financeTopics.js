@@ -140,6 +140,31 @@ export const RELIGIOUS_TOPICS = [
 
 export const ALL_TOPICS = [...FINANCE_TOPICS, ...SPORTS_TOPICS, ...RELIGIOUS_TOPICS];
 
+export const SPIRITUAL_TOPICS = [
+  { topic: 'जय श्री राम — हनुमान चालीसा की वो चौपाई जो हर मुसीबत में काम आती है', angle: 'shloka', genre: 'chants', deity: 'Hanuman' },
+  { topic: 'कृष्ण का वो एक संदेश जो गीता में है और जिंदगी बदल देता है', angle: 'wisdom', genre: 'chants', deity: 'Krishna' },
+  { topic: 'ॐ नमः शिवाय — इस मंत्र का असली अर्थ जो कोई नहीं बताता', angle: 'shloka', genre: 'chants', deity: 'Shiva' },
+  { topic: 'राम नाम की शक्ति — जब सब दरवाज़े बंद हो जाएं', angle: 'devotion', genre: 'chants', deity: 'Rama' },
+  { topic: 'गणेश वंदना जो हर नए काम से पहले करनी चाहिए', angle: 'prayer', genre: 'chants', deity: 'Ganesha' },
+  { topic: 'लक्ष्मी माता की वो आरती जो घर में सुख-समृद्धि लाती है', angle: 'prayer', genre: 'chants', deity: 'Lakshmi' },
+  { topic: 'दुर्गा माता का वो रूप जो हर डर को खत्म कर देता है', angle: 'story', genre: 'chants', deity: 'Durga' },
+  { topic: 'सरस्वती माता की कृपा कैसे पाएं — विद्यार्थियों के लिए मंत्र', angle: 'prayer', genre: 'chants', deity: 'Saraswati' },
+  { topic: 'भगवद् गीता का अध्याय 2 — अर्जुन को कृष्ण ने जो बताया वो आज भी सच है', angle: 'teaching', genre: 'wisdom', deity: 'Krishna' },
+  { topic: 'विष्णु सहस्रनाम — सबसे शक्तिशाली स्तोत्र का रहस्य', angle: 'shloka', genre: 'wisdom', deity: 'Vishnu' },
+  { topic: 'शिव तांडव स्तोत्र — रावण ने जो शिव की स्तुति में लिखा', angle: 'story', genre: 'wisdom', deity: 'Shiva' },
+  { topic: 'सुंदरकांड का पाठ क्यों करें — हनुमान जी की कृपा का रास्ता', angle: 'wisdom', genre: 'wisdom', deity: 'Hanuman' },
+  { topic: 'राधा-कृष्ण का प्रेम — जो इंसानी मन की सबसे गहरी सच्चाई है', angle: 'story', genre: 'wisdom', deity: 'Krishna' },
+  { topic: 'नवरात्रि के 9 दिन — हर दिन कौन सी माता की पूजा और क्यों', angle: 'festival', genre: 'wisdom', deity: 'Durga' },
+  { topic: 'चाणक्य नीति — जो दोस्त मुसीबत में काम न आए वो दोस्त नहीं', angle: 'wisdom', genre: 'chanakya' },
+  { topic: 'चाणक्य का वो एक नियम जो गरीब को अमीर बना सकता है', angle: 'teaching', genre: 'chanakya' },
+  { topic: 'चाणक्य ने कहा था — इन 3 लोगों से हमेशा सावधान रहो', angle: 'wisdom', genre: 'chanakya' },
+  { topic: 'चाणक्य नीति — सच्चा नेता कैसा होता है, 2300 साल पहले की सीख', angle: 'teaching', genre: 'chanakya' },
+  { topic: 'महाशिवरात्रि — शिव की वो कहानी जो हर इंसान की जिंदगी में है', angle: 'festival', genre: 'chants', deity: 'Shiva' },
+  { topic: 'जन्माष्टमी — कृष्ण का जन्म क्यों हुआ, असली कारण जानिए', angle: 'festival', genre: 'chants', deity: 'Krishna' },
+  { topic: 'मंगलवार को हनुमान चालीसा — सही विधि और चमत्कारी फल', angle: 'prayer', genre: 'chants', deity: 'Hanuman' },
+  { topic: 'सोमवार का व्रत — शिव की कृपा के लिए क्या करें, क्या न करें', angle: 'prayer', genre: 'chants', deity: 'Shiva' },
+];
+
 export const CHANNEL_DEFINITIONS = [
   {
     id: 'general',
@@ -200,6 +225,7 @@ export function getTopicsByGenre(genre) {
 }
 
 export function getTopicsByChannelId(channelId) {
+  if (channelId === 'chants' || channelId === 'religious') return SPIRITUAL_TOPICS;
   const channel = CHANNEL_DEFINITIONS.find(c => c.id === channelId);
   if (!channel) return FINANCE_TOPICS;
   const topics = ALL_TOPICS.filter(t => channel.genres.includes(t.genre));
