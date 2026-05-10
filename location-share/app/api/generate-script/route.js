@@ -374,7 +374,7 @@ function extractJSON(text) {
   return null;
 }
 
-async function tryGenerate(llmUrl, llmKey, llmModel, systemPrompt, userPrompt, attempt) {
+async function tryGenerate(llmUrl, llmKey, llmModel, systemPrompt, userPrompt, attempt, maxTokens = 3000) {
   const res = await fetch(llmUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${llmKey}` },
@@ -384,7 +384,7 @@ async function tryGenerate(llmUrl, llmKey, llmModel, systemPrompt, userPrompt, a
         { role: 'system', content: systemPrompt },
         { role: 'user',   content: userPrompt   },
       ],
-      max_tokens: isDevotional ? 4000 : 3000,
+      max_tokens: maxTokens,
       temperature: attempt === 0 ? 0.85 : 0.65, // cool down on retries
       response_format: { type: 'json_object' },
     }),
@@ -554,7 +554,7 @@ Return JSON only:
     for (let attempt = 0; attempt < 4; attempt++) {
       const p = providers[providerIdx];
       try {
-        parsed = await tryGenerate(p.url, p.key, p.model, systemPrompt, userPrompt, attempt);
+        parsed = await tryGenerate(p.url, p.key, p.model, systemPrompt, userPrompt, attempt, isDevotional ? 4000 : 3000);
         break;
       } catch (err) {
         lastErr = err;
