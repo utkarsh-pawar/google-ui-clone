@@ -61,17 +61,13 @@ export default function AutoStudioPage() {
       setJobs(data.jobs || []);
       setAutoMode(!!data.config?.autoMode);
       setVideoFormat(data.config?.videoFormat || 'portrait');
+      setYtStored(!!data.config?.ytTokenStored);
       setLastPoll(Date.now());
     } catch {}
   }, []);
 
   useEffect(() => {
     fetchStatus();
-    // Check if YouTube token is stored server-side
-    fetch('/api/studio-config').then(r => r.json()).then(cfg => {
-      setYtStored(!!cfg?.ytTokenStored);
-    }).catch(() => {});
-
     // Poll every 12s so progress updates show without manual refresh
     pollRef.current = setInterval(fetchStatus, 12000);
     return () => clearInterval(pollRef.current);
@@ -115,7 +111,9 @@ export default function AutoStudioPage() {
           </div>
         </div>
         <div className={styles.nav}>
-          <a href="/api/youtube/auth?channelId=chants" className={styles.ytBtn}>🔗 Connect YouTube</a>
+          <a href="/api/youtube/auth?channelId=chants" className={ytStored ? styles.ytBtnOk : styles.ytBtn}>
+            {ytStored ? '✅ YouTube' : '🔗 Connect YouTube'}
+          </a>
           <Link href="/auto-studio/history" className={styles.navLink}>📊 History</Link>
           <Link href="/video-creator/chants" className={styles.navLink}>Manual →</Link>
         </div>
@@ -182,14 +180,25 @@ export default function AutoStudioPage() {
         </div>
 
         {/* YouTube connection status */}
-        <div className={styles.card}>
+        <div className={`${styles.card} ${ytStored ? styles.cardGreen : ''}`}>
           <div className={styles.cardTitle}>📺 YouTube Connection</div>
-          <div className={styles.autoDesc}>
-            The server needs your YouTube token to upload automatically. Connect once — it's saved server-side permanently.
-          </div>
-          <a href="/api/youtube/auth?channelId=chants" className={styles.connectBtn}>
-            🔗 Connect / Reconnect YouTube Channel
-          </a>
+          {ytStored ? (
+            <>
+              <div className={styles.ytConnected}>✅ Channel connected — server will upload automatically</div>
+              <a href="/api/youtube/auth?channelId=chants" className={styles.reconnectBtn}>
+                🔄 Reconnect / switch channel
+              </a>
+            </>
+          ) : (
+            <>
+              <div className={styles.autoDesc}>
+                The server needs your YouTube token to upload automatically. Connect once — it's saved server-side permanently.
+              </div>
+              <a href="/api/youtube/auth?channelId=chants" className={styles.connectBtn}>
+                🔗 Connect YouTube Channel
+              </a>
+            </>
+          )}
         </div>
 
         {/* Active job */}

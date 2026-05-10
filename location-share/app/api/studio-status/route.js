@@ -1,7 +1,9 @@
 export const runtime = 'nodejs';
 
 export async function GET() {
-  const { getRecentJobs, getStudioConfig } = await import('@/lib/serverPipeline.js');
+  const { getRecentJobs, getStudioConfig, getYouTubeRefreshToken } = await import('@/lib/serverPipeline.js');
   const [jobs, config] = await Promise.all([getRecentJobs(), getStudioConfig()]);
-  return Response.json({ jobs, config });
+  const channelId = config.channelId || 'chants';
+  const ytToken = await getYouTubeRefreshToken(channelId);
+  return Response.json({ jobs, config: { ...config, ytTokenStored: !!ytToken } });
 }

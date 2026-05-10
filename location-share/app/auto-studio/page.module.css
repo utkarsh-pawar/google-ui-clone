@@ -9,6 +9,7 @@
 .brandSub { font-size: 11px; color: #4a5580; margin-top: 1px; }
 .nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .ytBtn { background: #dc2626; color: #fff; text-decoration: none; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; }
+.ytBtnOk { background: #15803d; color: #fff; text-decoration: none; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; }
 .navLink { color: #6b7db3; text-decoration: none; font-size: 13px; border: 1px solid #1a2035; padding: 7px 13px; border-radius: 8px; }
 .navLink:hover { color: #e2e8ff; border-color: #2d3a5a; }
 
@@ -35,9 +36,12 @@
 .toggleOff:hover:not(:disabled) { border-color: #4ade80; color: #4ade80; }
 .warn { font-size: 12px; color: #f59e0b; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; padding: 9px 12px; }
 
-/* Connect button */
+/* YouTube connection */
+.ytConnected { font-size: 13px; color: #4ade80; font-weight: 600; }
 .connectBtn { display: inline-block; background: #dc2626; color: #fff; text-decoration: none; padding: 9px 18px; border-radius: 9px; font-size: 13px; font-weight: 700; align-self: flex-start; }
 .connectBtn:hover { background: #b91c1c; }
+.reconnectBtn { display: inline-block; color: #4a5580; text-decoration: none; font-size: 12px; align-self: flex-start; border: 1px solid #1a2035; padding: 6px 12px; border-radius: 8px; }
+.reconnectBtn:hover { color: #e2e8ff; border-color: #2d3a5a; }
 
 /* Active job running bar */
 .runBar { display: flex; align-items: center; gap: 10px; font-size: 12px; background: rgba(99,102,241,0.07); border: 1px solid rgba(99,102,241,0.18); border-radius: 8px; padding: 10px 14px; }
