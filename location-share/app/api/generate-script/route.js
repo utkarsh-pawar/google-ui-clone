@@ -152,56 +152,74 @@ COMEDY VIRALITY TRIGGERS:
 ${VIRALITY_STRUCTURE}
 Always respond with valid JSON only. No markdown, no explanation.`;
 
-const CHANTS_SYSTEM = `You are a master spiritual content creator making deeply moving Hindi YouTube Shorts about shlokas, wisdom, and ancient teachings. Your videos make people pause, feel peace, and save the video to watch again.
+const CHANTS_SYSTEM = `You are a master spiritual content creator making deeply moving Hindi YouTube Shorts about shlokas, wisdom, and ancient teachings. Your videos make people pause, feel peace, and save them to watch again.
 
-LANGUAGE RULE: Write ALL narration in Hindi (Devanagari script). Sanskrit shlokas in original Sanskrit, then Hindi meaning. No English in N- lines.
+LANGUAGE RULE: Write ALL narration (N- lines) in Hindi (Devanagari script). Sanskrit shlokas in original Sanskrit first, then the next N- gives the Hindi meaning. NO English in N- lines — ever.
 
 CRITICAL SCRIPTURE ACCURACY — NEVER get these wrong:
 - BHAGAVAD GITA: Lord KRISHNA speaks to ARJUNA on Kurukshetra battlefield. Ram has NO role in Gita.
 - RAMAYAN: LORD RAM's story — Ram, Sita, Hanuman, Lakshmana, Ravan, Bharat. Krishna does NOT appear in Ramayan.
-- MAHABHARATA: Pandavas vs Kauravas. Krishna is Arjuna's guide/charioteer. Ram is NOT in Mahabharata.
+- MAHABHARATA: Pandavas vs Kauravas. Krishna is Arjuna's guide. Ram is NOT in Mahabharata.
 - HANUMAN CHALISA: 40 verses about Hanuman's devotion to Lord Ram. Not about Krishna, not about Gita.
 - CHANAKYA NITI: Practical life wisdom by Acharya Chanakya. No deity appears — purely philosophical.
-- SRIMAD BHAGAVATAM: Krishna's stories — Bal Leela (childhood), Mathura, Vrindavan, Dwarka.
 - NEVER say Ram spoke in Gita. NEVER say Krishna appears in Ramayan. NEVER mix characters between texts.
 - If unsure which scripture a verse belongs to — do not mention a scripture name. Just share the wisdom.
 
+NARRATION WRITING RULES (N- lines):
+- Write in poetic, meditative Hindi. NOT fragmented keyword Hindi — complete, breathing sentences.
+- Max 12 Hindi words per N- line. But make every word carry weight.
+- Speak like a wise elder who deeply feels what they are saying.
+- Connect each line to an emotion the viewer is feeling RIGHT NOW: loss, longing, fear, hope, gratitude.
+- Sanskrit shlokas: write the original Sanskrit line in one N-, then the Hindi meaning in the next N-.
+- Every N- line should feel like it could be printed and read for years.
+
 CORE RULE — visual-narration sync:
-Every S- image must SHOW exactly what the N- line SAYS or FEELS.
-S- lines are fed to an AI image generator. Write them in English. Make them hyper-detailed and visually specific.
+Every S- image prompt must SHOW exactly what the N- line SAYS or FEELS.
+S- lines are fed to an AI image generator. Write them in English. Make them hyper-detailed.
 
 IMAGE QUALITY RULES FOR S- LINES:
-- Always name the deity clearly (Krishna, Shiva, Hanuman, Ganesha, Rama, Lakshmi, Vishnu, etc.) — the system auto-expands names with full visual descriptions.
-- After naming the deity, describe WHAT THEY ARE DOING and THE SCENE CONTEXT in vivid detail:
-  • Action: "seated in deep meditation", "playing flute by the Yamuna river bank", "blessing a weeping devotee", "lifting the Govardhana mountain effortlessly", "emerging from the cosmic ocean"
-  • Setting: "inside Dwarka golden palace", "on snowy Kailash peak surrounded by clouds", "battlefield of Kurukshetra at dawn", "inside a glowing temple with oil lamps", "under the Peepal tree at sunset"
-  • Lighting: "divine golden backlight rays streaming through clouds", "warm amber oil lamp glow", "soft pink dawn light", "dramatic temple shadow and candlelight", "celestial blue moonlight"
-  • Atmosphere: "thousands of marigold petals floating in the air", "incense smoke rising in golden spiral", "sacred Ganga water glowing with diyas", "stars and galaxies visible behind divine figure"
-  • Emotion: "serene bliss", "fierce protective energy", "unconditional compassion", "divine power radiating"
-- For temples: "golden shikhara spire carved stone, marigold garlands, oil diyas glowing amber, incense smoke, devotees bowing"
-- For nature scenes: "Ganga river at dawn, golden mist on water, lotus flowers floating, prayer diyas drifting, pink gold sunrise sky"
-- For devotees: "devotee tear-filled eyes, hands folded in prayer, forehead bowed, divine golden warm light washing over face, expression of complete surrender"
-- For cosmic scenes: "infinite cosmic void, stars and nebulae, divine golden mandala, sacred geometry, eternity"
+- Always name the deity clearly (Krishna, Shiva, Hanuman, Ganesha, Rama, Lakshmi, etc.) — the system auto-expands names with full visual descriptions.
+- After naming the deity, describe in vivid detail:
+  ACTION: "seated in deep meditation", "playing flute by moonlit Yamuna river bank", "lifting Govardhana mountain effortlessly with one hand", "blessing weeping devotee with raised right hand", "in warrior pose on Kurukshetra battlefield at golden dawn"
+  SETTING: "inside Dwarka golden marble palace with carved pillars", "on snow-covered Kailash peak shrouded in sacred clouds", "inside an ancient stone temple lit by hundreds of oil lamps", "under a vast ancient Peepal tree beside a sacred river at sunset", "on the Kurukshetra battlefield at first light"
+  LIGHTING: "divine golden backlight rays streaming through parting storm clouds", "warm amber oil lamp glow casting dancing shadows on carved stone walls", "soft rose-gold dawn light on water", "dramatic temple candlelight with deep velvet shadows", "celestial blue-white moonlight through forest canopy"
+  ATMOSPHERE: "thousands of marigold petals floating in the air", "incense smoke rising in golden curling spiral", "sacred Ganga glowing with hundreds of clay diyas drifting", "distant Himalayas shrouded in violet mist", "stars and nebulae visible behind the divine figure"
+  EMOTION: "expression of serene bliss", "fierce protective divine energy", "unconditional compassion radiating", "deep stillness beyond all thought", "radiant divine joy"
+- For devotee scenes: "devotee with tear-streaked face, eyes closed, hands folded in prayer, forehead bowed low, divine golden warm light washing over face, expression of complete surrender and peace, marigold petals around hands"
+- For nature/sacred scenes: "sacred Ganga river at misty golden dawn, lotus flowers floating on water surface, clay prayer diyas drifting with small flames, rose-gold sunrise reflecting on river, birds rising in flight, golden mist above water"
+- For cosmic scenes: "infinite cosmic void, swirling gold and violet nebulae, sacred geometry mandala glowing in gold, lotus pattern expanding outward, sense of infinite eternity and stillness"
+- SCENE 1 RULE: MUST be an extreme close-up — devotee's tear-filled eyes, gently praying hands with marigold petals, deity face in sacred light, or a single flame in deep darkness. Include divine golden backlight or temple lamp glow. NEVER start with a wide temple shot.
 
-SCENE WRITING RULES:
-- ONE thought per N- line. Max 10 Hindi words. Slow, meditative, powerful.
-- SCENE 1: Extreme close-up — deity's luminous eyes, flame in darkness, devotee's tear. Never a wide shot. Use "divine golden backlight" or "temple lamp glow".
-- Let silence breathe between lines — short lines feel more profound than long ones.
-- Connect the ancient teaching to what the viewer is feeling RIGHT NOW (loss, fear, loneliness, hope).
-- End with a line so beautiful people screenshot it.
+DEVOTIONAL STORY ARC — follow this structure every time:
 
-CONTENT STRUCTURE for chants/wisdom:
-  Shlokas: Sanskrit line → Hindi transliteration feel → meaning in simple Hindi → why it matters today
-  Chanakya: Quote the niti → Hindi meaning → one modern example → life lesson
-  Wisdom: Single truth → why people forget it → how to remember it → the change it makes
+SCENE 1 — THE FEELING:
+  Begin with a universal human emotion or longing — the pain that brings someone to prayer.
+  Extreme close-up. No explanation. The image says everything.
+  The viewer must feel: "this is exactly what I am feeling right now."
 
-HOOK PATTERNS:
-  a) Ancient answer to modern pain: "क्या आप थके हुए हैं? गीता में इसका जवाब है।"
-  b) Surprising wisdom: "चाणक्य ने 2300 साल पहले कहा था — आज भी सच है।"
-  c) Emotional open: Start mid-feeling. "जब सब छोड़ देते हैं, तो भगवान पास आते हैं।"
-  d) Curiosity gap: "हनुमान चालीसा की एक पंक्ति जो आपकी ज़िंदगी बदल सकती है।"
-${VIRALITY_STRUCTURE}
+SCENES 2-3 — THE SCRIPTURE:
+  Present the shloka, chant, or wisdom in its original Sanskrit or Hindi beauty.
+  Let it breathe — two scenes to establish the text and its music.
+  S- shows the deity or sacred scene associated with the scripture.
+
+SCENES 4-6 — THE DEPTH:
+  One new layer of meaning per scene. Never repeat.
+  What does each word truly mean? What truth does it reveal?
+  Connect the ancient teaching to the specific modern situation the viewer is in.
+
+SCENES 7-8 — THE MIRROR:
+  The viewer sees themselves in the teaching.
+  "जब आप [modern struggle], तब यह [scripture] याद करें।"
+  S- shows a devotee in the same emotional space — they see themselves.
+
+SCENES 9-10 — THE PEACE:
+  End with a feeling of peace, hope, or awe — never preachiness or lecture.
+  The last N- line must be so beautiful people screenshot it.
+  S- shows resolution: deity blessing, sacred dawn after storm, lamp in darkness.
+  End with: "इसे उसे भेजो जिसे इसकी ज़रूरत है।" OR "इसे save करें — जब मन टूटे, इसे पढ़ें।"
+
 Always respond with valid JSON only. No markdown, no explanation.`;
+
 
 function getBaseSystem(genre) {
   if (genre === 'sports') return SPORTS_SYSTEM;
@@ -266,34 +284,37 @@ const GENRE_INSTRUCTIONS = {
   Title formula: "What [deity/scripture] says about [modern problem]" / "The prayer that changed [specific situation]"`,
 
   chants: `Genre: SHLOKAS & CHANTS (Hindi).
-  Virality angle: Give them the PEACE and MEANING they can't find anywhere on social media.
-  - Write ALL narration in Hindi. Sanskrit shlokas in original Sanskrit first, then Hindi meaning.
-  - Open with the shloka line or chant — let its beauty be the hook.
-  - Explain meaning in simple, modern Hindi — like a wise elder explaining to their grandchild.
-  - Connect to a feeling the viewer has RIGHT NOW: loneliness, failure, doubt, gratitude.
-  - End with a line so beautiful people screenshot and share: "इसे उसे भेजो जिसे इसकी ज़रूरत है।"
-  - Language: Hindi (Devanagari). Keep scenes short — 8 words max per N- line.
-  Title formula (in Hindi): "गीता का वो श्लोक जो [modern struggle] का जवाब है" / "[deity] ने कहा था..."`,
+  Story focus: PEACE AND MEANING — give them what social media cannot.
+  - Write ALL narration in Hindi (Devanagari). Sanskrit shlokas in original Sanskrit first, then Hindi meaning.
+  - Follow the DEVOTIONAL ARC: Feeling → Scripture → Depth → Mirror → Peace.
+  - Present the shloka with reverence, not as a hook. Let the words breathe.
+  - Unpack the wisdom slowly — one layer of truth per scene, never rush.
+  - Connect to what the viewer is feeling RIGHT NOW: loneliness, failure, doubt, gratitude.
+  - End with a line so beautiful people screenshot it: "इसे उसे भेजो जिसे इसकी ज़रूरत है।"
+  Title formula (in Hindi): "गीता का वो श्लोक जो [modern struggle] का जवाब है" / "[deity] ने कहा था — आज भी सच है"`,
 
   wisdom: `Genre: HINDI WORDS OF WISDOM / MORNING MOTIVATION.
-  Virality angle: Give them the one line they needed to hear today.
-  - Write ALL narration in Hindi. Short, punchy, profound lines — 6-8 words each.
-  - Open with the wisdom statement itself — bold, direct, unavoidable.
-  - Each scene adds depth: story, example, contrast, consequence.
-  - Speak to the viewer directly: "आप", "आपकी", "आपके लिए".
-  - Make the last scene screenshot-worthy — a complete thought that works standalone.
+  Story focus: THE ONE LINE THEY NEEDED TO HEAR TODAY.
+  - Write ALL narration in Hindi. Complete poetic sentences — not fragments, not keywords.
+  - Follow the DEVOTIONAL ARC: Feeling → Wisdom statement → Depth → Mirror → Peace.
+  - Open with a universal feeling, then introduce the wisdom as the answer.
+  - Each scene adds one layer of depth: what it means, why we forget, a real example, the change it makes.
+  - Speak directly to the viewer: "आप", "आपकी", "आपके लिए".
+  - Make the last N- line screenshot-worthy — a complete thought that works completely standalone.
   - End: "इसे save करें — जब मन टूटे, इसे पढ़ें।"
   Title formula: "[Short profound Hindi statement]" / "जो लोग [quality] रखते हैं वो [outcome] पाते हैं"`,
 
   chanakya: `Genre: CHANAKYA NITI (Hindi).
-  Virality angle: Ancient practical wisdom that feels shockingly relevant today.
+  Story focus: ANCIENT WISDOM THAT FEELS WRITTEN FOR TODAY.
   - Write ALL narration in Hindi. Quote Chanakya in Sanskrit/Hindi, then decode it.
-  - Scene 1: The Chanakya quote — state it boldly like a fact.
-  - Scenes 2-4: Break down what it means in 2026, with a real-world Indian example.
-  - Scenes 5-7: The mistake people make by ignoring this niti.
-  - Scenes 8-10: The result when you apply it. End with the "aha" moment.
-  - Make it feel like insider knowledge — "Chanakya knew this 2300 years ago."
-  - End: "Chanakya was right. Share this with someone who needs to hear it."
+  - Follow the DEVOTIONAL ARC adapted for Chanakya: Modern pain → The Niti quote → Its meaning → Modern example → Life lesson → Resolution.
+  - Scene 1: The pain or situation the Niti addresses — make them feel it.
+  - Scenes 2-3: Quote the Chanakya niti — boldly, beautifully, with reverence.
+  - Scenes 4-6: Break it down — what it means in 2026, word by word, with a real Indian example.
+  - Scenes 7-8: The mistake people make by ignoring this niti — they see themselves.
+  - Scenes 9-10: The result when you apply it. End with the "aha" moment.
+  - Make it feel like insider wisdom — "Chanakya saw this 2300 years ago."
+  - End: "चाणक्य सही थे — इसे किसी ज़रूरतमंद को भेजें।"
   Title formula: "चाणक्य का वो नियम जो [modern situation] बदल देगा" / "चाणक्य ने कहा: [quote in Hindi]"`,
 
   comedy: `Genre: COMEDY SKIT WITH RECURRING CHARACTERS.
@@ -363,7 +384,7 @@ async function tryGenerate(llmUrl, llmKey, llmModel, systemPrompt, userPrompt, a
         { role: 'system', content: systemPrompt },
         { role: 'user',   content: userPrompt   },
       ],
-      max_tokens: 3000,
+      max_tokens: isDevotional ? 4000 : 3000,
       temperature: attempt === 0 ? 0.85 : 0.65, // cool down on retries
       response_format: { type: 'json_object' },
     }),
@@ -414,10 +435,18 @@ export async function POST(request) {
   const apiKey = process.env.CEREBRAS_API_KEY;
   if (!apiKey) return Response.json({ error: 'CEREBRAS_API_KEY not set' }, { status: 500 });
 
+  const isDevotional = ['chants', 'wisdom', 'chanakya'].includes(genre);
   const isShorts  = format === 'portrait';
   const isLong    = format === 'longform';
   const formatNote = isShorts
-    ? `Format: YouTube Shorts (9:16 vertical)
+    ? isDevotional
+      ? `Format: YouTube Shorts (9:16 vertical)
+- 10-11 scenes total following the DEVOTIONAL ARC (Feeling → Scripture → Depth → Mirror → Peace)
+- N- lines: 8-12 Hindi words, one meditative complete thought — poetic, not fragmented
+- Scene 1: Extreme close-up of devotee emotion or deity in sacred light — NEVER a wide shot
+- Total runtime: 40-55 seconds (meditative pace — let each image and word breathe)
+- Pace: calm and deliberate — each scene should feel like a moment of stillness`
+      : `Format: YouTube Shorts (9:16 vertical)
 - 9-11 scenes total — every scene must earn its place
 - N- lines: max 12 words, one idea, maximum emotional punch
 - Scene 1 is the HOOK — make it impossible to swipe past
@@ -473,15 +502,22 @@ ${performanceSummary}
 → If a specific angle (shloka/story/prayer/wisdom) outperforms, use that structure.\n`
     : '';
 
-  const userPrompt = `Write a maximum-virality YouTube script about: "${effectiveTopic}"
-Angle: ${angle || 'most viral possible'}
+  const titleRules = isDevotional
+    ? `TITLE RULES (all in Hindi — emotionally resonant, not clickbait):
+  Option 1: Ancient wisdom for modern pain: "जब [modern situation] हो, तो [deity/scripture] यह कहते हैं"
+  Option 2: Revelation angle: "[deity] ने [character] को बताया — यह सुनकर आपकी ज़िंदगी बदल जाएगी"
+  Option 3: Promise of peace: "यह एक [shloka/niti] आपकी [struggle] को शांत कर देगा"`
+    : `TITLE RULES: All 3 title options must use different virality formulas:
+  Option 1: Shock/controversy angle ("The [topic] truth nobody admits")
+  Option 2: Curiosity gap ("Why [common thing] is actually [unexpected outcome]")
+  Option 3: Specific result + person ("How [specific person type] [specific result] in [specific time]")`;
+
+  const userPrompt = `Write a deeply moving YouTube script about: "${effectiveTopic}"
+Angle: ${angle || 'most emotionally resonant'}
 ${formatNote}
 ${langNote}${perfNote}${charBlock}
 
-TITLE RULES: All 3 title options must use different virality formulas:
-  Option 1: Shock/controversy angle ("The [topic] truth nobody admits")
-  Option 2: Curiosity gap ("Why [common thing] is actually [unexpected outcome]")
-  Option 3: Specific result + person ("How [specific person type] [specific result] in [specific time]")
+${titleRules}
 
 Return JSON only:
 {
