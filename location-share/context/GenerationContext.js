@@ -56,7 +56,7 @@ async function fetchVideoUrl(scenePrompt, format) {
   }
 }
 
-async function autoUploadToYouTube(blob, { youtubeTitle, youtubeDescription, youtubeTags, channelId }) {
+async function autoUploadToYouTube(blob, { youtubeTitle, youtubeDescription, youtubeTags, channelId, publishAt }) {
   try {
     const { getFreshToken, saveUploadHistoryEntry } = await import('@/lib/youtubeUtils');
     const accessToken = await getFreshToken(channelId);
@@ -66,9 +66,11 @@ async function autoUploadToYouTube(blob, { youtubeTitle, youtubeDescription, you
         description: youtubeDescription || '',
         tags: (youtubeTags || []).map(t => t.replace(/^#/, '')).slice(0, 15),
         categoryId: '27',
-        defaultLanguage: 'en',
+        defaultLanguage: 'hi',
       },
-      status: { privacyStatus: 'public', selfDeclaredMadeForKids: false },
+      status: publishAt
+        ? { privacyStatus: 'private', publishAt: new Date(publishAt).toISOString(), selfDeclaredMadeForKids: false }
+        : { privacyStatus: 'public', selfDeclaredMadeForKids: false },
     };
     const initRes = await fetch(
       'https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status',
@@ -184,6 +186,7 @@ export function GenerationProvider({ children }) {
     showSubtitles = true,
     characters = [],
     autoUpload = false,
+    publishAt = null,
     onComplete = null,
   }) => {
     abortRef.current = false;
@@ -348,7 +351,7 @@ export function GenerationProvider({ children }) {
       let ytResult = null;
       if (autoUpload && videoBlob) {
         setActive(a => ({ ...a, status: 'uploading', progress: { step: 'Uploading to YouTube…', current: scenes.length, total: scenes.length } }));
-        ytResult = await autoUploadToYouTube(videoBlob, { youtubeTitle: finalYoutubeTitle, youtubeDescription, youtubeTags, channelId });
+        ytResult = await autoUploadToYouTube(videoBlob, { youtubeTitle: finalYoutubeTitle, youtubeDescription, youtubeTags, channelId, publishAt });
         addToast(ytResult ? `✅ Uploaded: ${finalYoutubeTitle || title}` : '⚠️ Upload failed — video saved locally');
       }
 

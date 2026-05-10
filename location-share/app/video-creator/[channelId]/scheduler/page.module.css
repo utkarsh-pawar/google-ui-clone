@@ -331,3 +331,12 @@
   border-bottom: 1px solid var(--border);
 }
 .logLine:last-child { border-bottom: none; }
+
+/* Posting schedule picker */
+.slotRow { display: flex; gap: 10px; margin: 12px 0 8px; flex-wrap: wrap; }
+.slotItem { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 100px; }
+.slotLabel { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.slotSelect { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px 8px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; }
+.slotSelect:focus { outline: none; border-color: var(--accent); }
+.nextPublish { font-size: 13px; color: var(--muted); padding: 8px 0 0; }
+.nextPublish strong { color: var(--accent); }

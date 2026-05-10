@@ -5,28 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { useGeneration } from '@/context/GenerationContext';
 import { CHANNEL_DEFINITIONS, getTopicsByChannelId } from '@/lib/financeTopics';
 import { isYouTubeConnected, disconnectYouTube, getUploadHistory } from '@/lib/youtubeUtils';
+import { loadSchedule, saveSchedule, getNextPublishTime, formatPublishTime, formatIST, TIME_OPTIONS } from '@/lib/postingSchedule';
 import styles from './page.module.css';
-
-// Schedule: 3 posts per day at these UTC hours (8am, 2pm, 8pm IST = 2:30, 8:30, 14:30 UTC)
-const SCHEDULE_UTC_HOURS = [2, 8, 14];
-
-function getNextSlot() {
-  const now = new Date();
-  const nowUTC = now.getUTCHours() * 60 + now.getUTCMinutes();
-  for (const h of SCHEDULE_UTC_HOURS) {
-    const slotMin = h * 60;
-    if (nowUTC < slotMin) {
-      const d = new Date(now);
-      d.setUTCHours(h, 0, 0, 0);
-      return d;
-    }
-  }
-  // Next is tomorrow's first slot
-  const d = new Date(now);
-  d.setUTCDate(d.getUTCDate() + 1);
-  d.setUTCHours(SCHEDULE_UTC_HOURS[0], 0, 0, 0);
-  return d;
-}
 
 function fmtCountdown(ms) {
   if (ms <= 0) return '00:00:00';
@@ -37,9 +17,8 @@ function fmtCountdown(ms) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
 }
 
-function autoKey(channelId, slotHour) {
-  const d = new Date();
-  return `auto_fired_${channelId}_${d.toDateString()}_${slotHour}`;
+function autoKey(channelId, slot) {
+  return `auto_fired_${channelId}_${new Date().toDateString()}_${slot}`;
 }
 
 export default function ChannelSchedulerPage() {
@@ -59,6 +38,16 @@ export default function ChannelSchedulerPage() {
   const [log, setLog] = useState([]);
   const runningRef = useRef(false);
 
+  // Posting schedule
+  const [scheduleSlots, setScheduleSlots] = useState(['08:00', '13:00', '18:00']);
+  const [nextPublish, setNextPublish] = useState(null);
+
+  useEffect(() => {
+    const saved = loadSchedule();
+    setScheduleSlots(saved);
+    setNextPublish(getNextPublishTime());
+  }, []);
+
   const addLog = useCallback((msg) => {
     setLog(l => [`${new Date().toLocaleTimeString()} — ${msg}`, ...l].slice(0, 30));
   }, []);
@@ -76,14 +65,15 @@ export default function ChannelSchedulerPage() {
   // Countdown timer
   useEffect(() => {
     const tick = () => {
-      const next = getNextSlot();
+      const next = getNextPublishTime();
       setNextSlot(next);
+      setNextPublish(next);
       setCountdown(fmtCountdown(next - Date.now()));
     };
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [scheduleSlots]);
 
   // Auto-trigger: fires at each scheduled UTC hour if autoMode is on
   const triggerAutoGenerate = useCallback(async (topicObj, slotHour) => {
@@ -130,25 +120,29 @@ export default function ChannelSchedulerPage() {
     }
   }, [addLog, startGeneration, ytConnected, channelId, channel, router]);
 
-  // Check every 30s if we should fire
+  // Check every 60s if any schedule slot is now (within 2 min window)
   useEffect(() => {
     if (!autoMode) return;
+    const IST_OFFSET = 5.5 * 60;
     const check = () => {
       const now = new Date();
-      const h = now.getUTCHours();
-      const m = now.getUTCMinutes();
-      if (!SCHEDULE_UTC_HOURS.includes(h) || m >= 2) return;
-      const key = autoKey(channelId, h);
-      if (localStorage.getItem(key)) return;
-      localStorage.setItem(key, '1');
-      const topics = getTopicsByChannelId(channelId);
-      const slotIdx = Math.floor(Date.now() / (8 * 3600 * 1000)) % topics.length;
-      triggerAutoGenerate(topics[slotIdx], h);
+      const istMin = ((now.getUTCHours() * 60 + now.getUTCMinutes()) + IST_OFFSET) % (24 * 60);
+      for (const slot of scheduleSlots) {
+        const [h, m] = slot.split(':').map(Number);
+        const slotMin = h * 60 + m;
+        if (Math.abs(istMin - slotMin) > 2) continue;
+        const key = autoKey(channelId, slot);
+        if (localStorage.getItem(key)) continue;
+        localStorage.setItem(key, '1');
+        const topics = getTopicsByChannelId(channelId);
+        const slotIdx = Math.floor(Date.now() / (8 * 3600 * 1000)) % topics.length;
+        triggerAutoGenerate(topics[slotIdx], slot);
+      }
     };
     check();
-    const id = setInterval(check, 30_000);
+    const id = setInterval(check, 60_000);
     return () => clearInterval(id);
-  }, [autoMode, channelId, triggerAutoGenerate]);
+  }, [autoMode, channelId, triggerAutoGenerate, scheduleSlots]);
 
   // Poll /api/queue for cron-pre-generated scripts
   useEffect(() => {
@@ -161,22 +155,23 @@ export default function ChannelSchedulerPage() {
         addLog(`📥 ${jobs.length} job(s) from server queue — processing…`);
         for (const job of jobs) {
           if (job.channelId !== channelId) continue;
+          const publishAt = getNextPublishTime().toISOString();
           await startGeneration({
             script: job.script,
-            style: job.style || 'cinematic',
+            style: job.style || 'divine',
             format: job.format || 'portrait',
-            language: job.language || 'en',
-            speedMultiplier: 1,
-            narration: true,
-            voice: 'Brian',
+            language: job.language || 'hi',
+            speedMultiplier: 1, narration: true, voice: 'Brian',
             titleText: job.titleText || '',
             youtubeTitle: job.youtubeTitle || '',
             youtubeDescription: job.youtubeDescription || '',
             youtubeTags: job.youtubeTags || [],
-            channelId,
-            autoUpload: ytConnected,
+            channelId, autoUpload: ytConnected, publishAt,
+            deity: job.deity || '', angle: job.angle || '', topic: job.topic || '',
             onComplete: (result) => {
-              addLog(result.ytVideoUrl ? `🎉 Uploaded: ${result.ytVideoUrl}` : `📁 Rendered`);
+              addLog(result.ytVideoUrl
+                ? `🎉 Scheduled: ${result.ytVideoUrl} → ${formatPublishTime(new Date(publishAt))}`
+                : `📁 Rendered`);
               setUploadHistory(getUploadHistory().filter(h => h.channelId === channelId));
             },
           });
@@ -256,6 +251,42 @@ export default function ChannelSchedulerPage() {
 
       <div className={styles.body}>
 
+        {/* Posting schedule picker */}
+        <div className={styles.card}>
+          <div className={styles.cardTitle}>🕐 Posting Schedule (IST)</div>
+          <div className={styles.cardSub}>Choose up to 3 times per day. Videos upload as <strong>scheduled</strong> — YouTube publishes them automatically.</div>
+          <div className={styles.slotRow}>
+            {[0, 1, 2].map(i => (
+              <div key={i} className={styles.slotItem}>
+                <div className={styles.slotLabel}>Slot {i + 1}</div>
+                <select
+                  className={styles.slotSelect}
+                  value={scheduleSlots[i] || ''}
+                  onChange={e => {
+                    const next = [...scheduleSlots];
+                    if (e.target.value) next[i] = e.target.value;
+                    else next.splice(i, 1);
+                    const filtered = next.filter(Boolean);
+                    setScheduleSlots(filtered);
+                    saveSchedule(filtered);
+                    setNextPublish(getNextPublishTime());
+                  }}
+                >
+                  <option value="">— off —</option>
+                  {TIME_OPTIONS.map(t => (
+                    <option key={t} value={t}>{formatIST(t)}</option>
+                  ))}
+                </select>
+              </div>
+            ))}
+          </div>
+          {nextPublish && (
+            <div className={styles.nextPublish}>
+              📅 Next publish: <strong>{formatPublishTime(nextPublish)}</strong>
+            </div>
+          )}
+        </div>
+
         {/* Auto-mode control */}
         <div className={`${styles.card} ${autoMode ? styles.cardActive : ''}`}>
           <div className={styles.autoRow}>
@@ -264,7 +295,7 @@ export default function ChannelSchedulerPage() {
                 {autoMode ? '🟢 Auto-mode ON' : '⚪ Auto-mode OFF'}
               </div>
               <div className={styles.cardSub}>
-                Posts at <strong>8am · 2pm · 8pm IST</strong> · {ytConnected ? 'uploads to YouTube' : 'saves locally'}
+                Posts at <strong>{scheduleSlots.map(formatIST).join(' · ')} IST</strong> · {ytConnected ? 'scheduled on YouTube' : 'saves locally'}
               </div>
               {autoMode && (
                 <div className={styles.countdown}>
