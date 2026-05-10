@@ -21,27 +21,28 @@ export const STYLES = [
 
 // Canonical visual descriptions for Hindu deities — injected into image prompts automatically
 const DEITY_DESCRIPTIONS = {
-  krishna:    'Lord Krishna divine blue complexion peacock feather crown yellow silk dhoti golden flute divine serene smile lotus eyes four arms',
-  shri:       'Lord Krishna divine blue complexion peacock feather crown yellow silk dhoti golden flute divine serene smile',
-  radha:      'Radha divine beauty adorned with flower garlands pink silk saree devotional love serene expression',
-  shiva:      'Lord Shiva matted jata hair crescent moon third eye blue throat sacred ash tiger skin serpent necklace trident Ganga flowing',
-  shankar:    'Lord Shiva matted jata hair crescent moon third eye blue throat sacred ash tiger skin trident',
-  hanuman:    'Lord Hanuman muscular divine form saffron orange complexion devotional expression sacred janeu thread gada mace tail raised',
-  bajrangbali:'Lord Hanuman muscular divine form saffron orange complexion devotional expression gada mace',
-  ganesh:     'Lord Ganesha elephant head deity four divine arms saffron silk modak sweet curved trunk lotus feet',
-  ganesha:    'Lord Ganesha elephant head deity four divine arms saffron silk modak sweet curved trunk lotus feet',
-  rama:       'Lord Rama divine blue complexion royal crown sacred thread bow and arrow serene noble expression yellow silk dhoti',
-  ram:        'Lord Rama divine blue complexion royal crown sacred thread bow and arrow serene noble expression yellow silk dhoti',
-  sita:       'Sita Mata graceful divine beauty silk saree gentle serene expression pure devotion golden ornaments',
-  durga:      'Goddess Durga ten arms wielding divine weapons riding golden lion fierce beautiful form red golden silk defeat of evil',
-  lakshmi:    'Goddess Lakshmi radiant divine beauty pink lotus throne gold coins red silk saree divine golden glow eight arms',
-  saraswati:  'Goddess Saraswati pure white silk divine veena instrument lotus throne white swan book of knowledge gentle serene',
-  vishnu:     'Lord Vishnu divine blue complexion four arms Sudarshana Chakra Shankha conch lotus Kaumodaki mace yellow silk divine crown',
-  brahma:     'Lord Brahma four heads four arms Vedas lotus throne white beard divine golden crown celestial',
-  indra:      'Lord Indra king of gods Vajra thunderbolt white elephant Airavata royal divine crown celestial court',
-  arjun:      'Arjuna warrior divine archer Gandiva bow Kurukshetra battlefield royal Kshatriya armor crown',
-  arjuna:     'Arjuna warrior divine archer Gandiva bow Kurukshetra battlefield royal Kshatriya armor crown',
-  chanakya:   'Acharya Chanakya ancient wise sage shaved head simple robes sharp piercing eyes scroll of wisdom austere scholarly',
+  krishna:     'Lord Krishna glowing sapphire-blue divine skin golden crown with peacock feather plume yellow pitambara silk dhoti golden armlets necklace bamboo flute raised to lips serene divine smile lotus eyes half-closed in bliss tribhanga graceful pose golden celestial aura radiating divine light',
+  shri:        'Lord Krishna glowing sapphire-blue divine skin golden crown peacock feather plume yellow pitambara silk dhoti golden ornaments bamboo flute serene smile lotus eyes golden divine aura',
+  radha:       'Radha divine beauty golden fair complexion lotus eyes pearl necklace flower garland pink silk saree gold border hands folded gracefully devotional longing serene expression divine love golden aura Vrindavan',
+  shiva:       'Lord Shiva ash-smeared pale complexion towering matted jata dreadlocks crescent moon Ganga river flowing from hair blazing divine third eye blue Neelkantha throat rudraksha mala coiled serpent necklace tiger skin four arms holding gleaming trishula trident and damru drum deep meditation snowy Kailash peak celestial backdrop',
+  shankar:     'Lord Shiva ash-smeared matted jata hair crescent moon blazing third eye blue Neelkantha throat rudraksha mala serpent necklace tiger skin four arms trishula trident damru drum deep meditation Kailash',
+  hanuman:     'Lord Hanuman powerfully muscular reddish-golden sinduri complexion humble devotional tear-filled eyes golden crown saffron langot dhoti sacred janeu across chest mighty gada mace in hand strong tail raised upward heart open showing Ram naam flowing bowing with deep bhakti devotion',
+  bajrangbali: 'Lord Hanuman powerfully muscular reddish-golden complexion golden crown saffron dhoti sacred janeu gada mace strong tail raised devotional tears humbly bowing Ram naam in heart',
+  ganesh:      'Lord Ganesha elephant head left tusk intact right tusk broken four arms warm golden complexion large round divine belly saffron red silk dhoti golden crown ornaments holding modak sweet ankush hook lotus flower large fan ears gentle divine smile tiny mouse vahana at lotus feet marigold garlands',
+  ganesha:     'Lord Ganesha elephant head intact left tusk four arms golden complexion round belly saffron silk dhoti golden crown modak sweet ankush hook lotus flower gentle smile mouse vahana marigold garlands',
+  rama:        'Lord Rama divine blue complexion noble Kshatriya prince Ayodhya royal crown tilak on forehead yellow silk dhoti sacred janeu thread golden ornaments Kodanda bow quiver of arrows serene compassionate noble expression divine majesty',
+  ram:         'Lord Rama divine blue complexion royal crown Ayodhya tilak sacred janeu yellow silk dhoti golden ornaments bow and arrows serene noble compassionate expression',
+  sita:        'Sita Mata pure divine beauty golden complexion silk saree pearl necklace golden ornaments flower garland gentle serene pure expression devotion grace divine aura',
+  durga:       'Goddess Durga ten divine arms each holding sacred weapon trishula sword chakra bow arrow shield lotus fierce beautiful expression golden crown red silk saree with gold border riding powerful golden lion triumphant over Mahishasura divine shakti radiance warrior goddess',
+  lakshmi:     'Goddess Lakshmi radiant golden complexion seated on large pink lotus red silk saree gold border pearl necklace gold bangles ornaments eight arms holding lotus flowers gold coins flowing from palm gentle divine serene smile abundance prosperity white elephants flanking divine glow',
+  saraswati:   'Goddess Saraswati pure white complexion pure white silk saree seated on white lotus or white swan gracefully playing veena stringed instrument book of Vedas mala beads serene gentle wise expression divine knowledge soft white luminous aura',
+  vishnu:      'Lord Vishnu four arms dark blue complexion like rain cloud Sudarshana Chakra spinning disc Panchajanya Shankha conch lotus Kaumodaki mace Shrivatsa mark Kaustubha gem necklace yellow pitambara silk Kireetam crown resting on Shesha serpent cosmic ocean divine calm serene expression',
+  brahma:      'Lord Brahma four faces four arms holding Vedas lotus water pot kamandal sacred thread long white beard golden crown seated on lotus white silk creator aspect divine',
+  indra:       'Lord Indra king of gods Vajra thunderbolt riding white Airavata elephant royal crown divine armor celestial court golden divine',
+  arjun:       'Arjuna noble Kshatriya warrior crown armor muscular holding Gandiva silver bow celestial arrows determined focused expression Kurukshetra battlefield divine chariot',
+  arjuna:      'Arjuna noble Kshatriya warrior crown armor holding Gandiva silver bow arrows determined expression Kurukshetra battlefield',
+  chanakya:    'Acharya Chanakya lean elderly scholar shaved head single shikha tuft simple white dhoti no ornaments austere piercing sharp intelligent eyes holding palm leaf scroll writing by oil lamp ancient scholarly wisdom deep thought',
+  surya:       'Lord Surya sun god radiant golden glowing complexion two or four arms holding lotus flowers seated on chariot pulled by seven colorful horses crown of solar rays divine golden aura sunrise backdrop celestial brilliance warmth and light',
 };
 
 function injectDeityDescription(text) {
@@ -159,7 +160,7 @@ const CHARACTER_APPEARANCE = {
 export function makeImagePrompt(text, styleSuffix, format = FORMATS[0], isHook = false, character = '', characterDefs = {}) {
   // Inject canonical deity descriptions before cleaning special chars
   const enhanced = injectDeityDescription(text);
-  const cleaned = enhanced.replace(/[^\w\s,]/g, ' ').slice(0, 350);
+  const cleaned = enhanced.replace(/[^\w\s,]/g, ' ').slice(0, 600);
   const aspect = format.id === 'portrait'
     ? '9:16 aspect ratio, vertical composition, portrait orientation'
     : '16:9 aspect ratio, horizontal composition';
