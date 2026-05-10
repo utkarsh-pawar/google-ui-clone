@@ -158,24 +158,25 @@ export default function AutoStudioPage() {
           <div className={styles.autoDesc}>Choose the format for every scheduled upload.</div>
           <div className={styles.fmtRow}>
             {[
-              { id: 'portrait',  icon: '📱', label: 'Shorts',    meta: '~45 sec · 9:16 vertical' },
-              { id: 'landscape', icon: '📺', label: 'Long video', meta: '~5 min · 16:9 horizontal' },
-              { id: 'longform',  icon: '🎥', label: 'Full story', meta: '~7 min · 16:9 horizontal' },
+              { id: 'portrait',  icon: '📱', label: 'Shorts',     meta: '~45 sec · 9:16',  pro: false },
+              { id: 'landscape', icon: '📺', label: 'Long video',  meta: '~5 min · 16:9',   pro: true  },
+              { id: 'longform',  icon: '🎥', label: 'Full story',  meta: '~7 min · 16:9',   pro: true  },
             ].map(f => (
               <button
                 key={f.id}
                 className={`${styles.fmtBtn} ${videoFormat === f.id ? styles.fmtBtnActive : ''}`}
                 onClick={() => changeFormat(f.id)}
                 disabled={saving}
+                title={f.pro ? 'Requires Vercel Pro (maxDuration=300)' : ''}
               >
-                <span className={styles.fmtLabel}>{f.icon} {f.label}</span>
+                <span className={styles.fmtLabel}>{f.icon} {f.label}{f.pro && <span className={styles.proBadge}> Pro</span>}</span>
                 <span className={styles.fmtMeta}>{f.meta}</span>
               </button>
             ))}
           </div>
           {videoFormat !== 'portrait' && (
             <div className={styles.warn}>
-              ⏱ Long videos may use the full 5-min server budget. Make sure your Vercel plan supports <code>maxDuration=300</code>.
+              ⚠️ Long videos require <strong>Vercel Pro</strong> (maxDuration=300s). On the hobby plan they will timeout and fail.
             </div>
           )}
         </div>

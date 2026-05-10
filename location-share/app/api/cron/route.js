@@ -3,7 +3,7 @@
 // script → images → audio → FFmpeg render → YouTube upload.
 // No browser needed. Close the tab and come back later.
 
-export const maxDuration = 300;
+export const maxDuration = 60; // hobby plan max; upgrade to Pro for 300s (needed for long-form)
 export const runtime = 'nodejs';
 
 const CHANTS_TAGS = ['#bhagavadgita','#shorts','#spiritual','#hindiwisdom','#hanumanchalisa','#sanatan','#viral','#bhakti','#devotional','#india'];
@@ -36,7 +36,10 @@ export async function GET(request) {
   }
 
   const channelId   = config.channelId   || 'chants';
-  const videoFormat = config.videoFormat || 'portrait';
+  // Long-form formats need maxDuration=300 (Vercel Pro). Clamp to portrait on hobby plan.
+  const videoFormat = (config.videoFormat === 'landscape' || config.videoFormat === 'longform')
+    ? config.videoFormat  // will work on Pro; may timeout on hobby
+    : 'portrait';
   const today = WEEKDAY[new Date().getDay()];
   const jobId = `job_${Date.now()}`;
 
