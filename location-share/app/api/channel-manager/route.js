@@ -10,7 +10,7 @@ import {
 
 // Groq decides today's video: deity + angle + topic sentence
 // Returns { deity, angle, topic, hook, whyNow }
-async function askGroqForTodaysTopic(recentTopics = []) {
+async function askGroqForTodaysTopic(recentTopics = [], performanceSummary = '') {
   const groqKey = process.env.GROQ_API_KEY;
   const cerebrasKey = process.env.CEREBRAS_API_KEY;
   if (!groqKey && !cerebrasKey) throw new Error('No LLM API key configured');
@@ -25,7 +25,9 @@ Today's scheduled deity: ${todayDeity.deity} — ${todayDeity.focus}
 ${festival ? `UPCOMING FESTIVAL (within 3 days): ${festival.name} on ${festival.day}/${festival.month + 1} — prioritise this deity: ${festival.deity}` : ''}
 Recently used topics (DO NOT repeat these): ${avoidList}
 
-Pick the best video idea for today. Choose the angle that will perform best given the deity and any upcoming festival.
+${performanceSummary || 'No performance data yet — follow the default deity schedule.'}
+
+Pick the best video idea for today. Use performance data to choose the highest-potential deity + angle combination.
 Respond with valid JSON only.`;
 
   const userPrompt = `Decide today's spiritual video for the channel.
@@ -74,11 +76,12 @@ Return JSON:
 // POST — generates full script for the decided topic and pushes to queue
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
-  const recentRaw = searchParams.get('recent') || '';
-  const recentTopics = recentRaw ? recentRaw.split('|') : [];
+  const recentRaw        = searchParams.get('recent')      || '';
+  const performanceSummary = searchParams.get('performance') || '';
+  const recentTopics     = recentRaw ? recentRaw.split('|') : [];
 
   try {
-    const decision = await askGroqForTodaysTopic(recentTopics);
+    const decision = await askGroqForTodaysTopic(recentTopics, performanceSummary);
     return Response.json({ ok: true, decision, decidedAt: new Date().toISOString() });
   } catch (err) {
     return Response.json({ ok: false, error: err.message }, { status: 500 });
@@ -86,13 +89,13 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const { recentTopics = [], channelId = 'chants', autoQueue = false } = await request.json();
+  const { recentTopics = [], channelId = 'chants', autoQueue = false, performanceSummary = '' } = await request.json();
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
   try {
-    // Step 1: AI decides today's topic
-    const decision = await askGroqForTodaysTopic(recentTopics);
+    // Step 1: AI decides today's topic (with performance data if available)
+    const decision = await askGroqForTodaysTopic(recentTopics, performanceSummary);
 
     // Step 2: Generate full script for that topic
     const scriptRes = await fetch(`${appUrl}/api/generate-script`, {

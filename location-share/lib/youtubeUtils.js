@@ -142,8 +142,52 @@ export function getUploadHistory() {
 export function saveUploadHistoryEntry(entry) {
   try {
     const h = getUploadHistory();
-    localStorage.setItem(YT_HISTORY_KEY, JSON.stringify([entry, ...h].slice(0, 50)));
+    localStorage.setItem(YT_HISTORY_KEY, JSON.stringify([entry, ...h].slice(0, 100)));
   } catch {}
 }
 
 function saveUploadHistory(entry) { saveUploadHistoryEntry(entry); }
+
+// Fetch real YouTube stats for a list of video IDs using the Data API
+// Returns map of videoId → { views, likes, comments }
+export async function fetchVideoStats(videoIds, channelId) {
+  if (!videoIds.length) return {};
+  const token = await getFreshToken(channelId).catch(() => null);
+  if (!token) return {};
+
+  const ids = videoIds.slice(0, 50).join(',');
+  const res = await fetch(
+    `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${ids}&access_token=${token}`,
+    { signal: AbortSignal.timeout(10000) }
+  );
+  if (!res.ok) return {};
+  const data = await res.json();
+
+  const map = {};
+  for (const item of data.items || []) {
+    map[item.id] = {
+      views:    parseInt(item.statistics?.viewCount    || 0),
+      likes:    parseInt(item.statistics?.likeCount    || 0),
+      comments: parseInt(item.statistics?.commentCount || 0),
+    };
+  }
+  return map;
+}
+
+// Enrich stored history entries with latest stats and save back
+export async function refreshHistoryStats(channelId) {
+  const history = getUploadHistory().filter(e => e.channelId === channelId || !e.channelId);
+  if (!history.length) return history;
+
+  const ids = history.map(e => e.videoId).filter(Boolean);
+  const stats = await fetchVideoStats(ids, channelId);
+
+  const enriched = history.map(e => ({
+    ...e,
+    stats: stats[e.videoId] || e.stats || null,
+    statsUpdatedAt: stats[e.videoId] ? new Date().toISOString() : e.statsUpdatedAt,
+  }));
+
+  try { localStorage.setItem(YT_HISTORY_KEY, JSON.stringify(enriched)); } catch {}
+  return enriched;
+}

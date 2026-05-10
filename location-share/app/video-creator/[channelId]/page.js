@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { STYLES, FORMATS, TTS_VOICES, splitScenes, sceneDurationFromText } from '@/lib/videoUtils';
 import { CHANNEL_DEFINITIONS, GENRES, getDefaultGenreForChannel } from '@/lib/financeTopics';
 import { HINDU_GODS } from '@/lib/hinduGods';
+import { buildPerformanceSummary } from '@/lib/performanceAnalyzer';
 import styles from './page.module.css';
 
 export default function ChannelVideoCreator() {
@@ -79,11 +80,20 @@ export default function ChannelVideoCreator() {
   useEffect(() => {
     if (!isSpiritual) return;
     setLoadingAiPick(true);
-    fetch('/api/channel-manager')
-      .then(r => r.json())
-      .then(d => { if (d.ok) setAiPick(d.decision); })
-      .catch(() => {})
-      .finally(() => setLoadingAiPick(false));
+    // Pull history + stats from localStorage, build performance summary for the AI
+    import('@/lib/youtubeUtils').then(({ getUploadHistory }) => {
+      const history = getUploadHistory();
+      const summary = buildPerformanceSummary(history);
+      const recentTopics = history.slice(0, 14).map(e => e.topic).filter(Boolean).join('|');
+      const params = new URLSearchParams();
+      if (recentTopics) params.set('recent', recentTopics);
+      if (summary && !summary.includes('not enough')) params.set('performance', summary);
+      fetch(`/api/channel-manager?${params}`)
+        .then(r => r.json())
+        .then(d => { if (d.ok) setAiPick(d.decision); })
+        .catch(() => {})
+        .finally(() => setLoadingAiPick(false));
+    });
   }, [isSpiritual]);
 
   const handleUseAiPick = () => {
@@ -146,6 +156,7 @@ export default function ChannelVideoCreator() {
       youtubeDescription: pendingScript.description || '',
       youtubeTags: pendingScript.tags || [],
       channelId, characters,
+      deity: selectedDeity, angle: selectedIdea?.angle || '', topic: selectedIdea?.topic || '',
     });
     router.push('/video-creator/generations');
   }, [pendingScript, style, format, language, speedMultiplier, narration, voice, startGeneration, router, channelId, characters]);
@@ -179,6 +190,7 @@ export default function ChannelVideoCreator() {
         </div>
         <div className={styles.headerLinks}>
           <Link href={`/video-creator/${channelId}/insights`} className={styles.historyLink}>Insights →</Link>
+          <Link href="/video-creator/performance" className={styles.historyLink}>📊 Stats →</Link>
           <Link href={`/video-creator/${channelId}/scheduler`} className={styles.historyLink}>Scheduler →</Link>
         </div>
       </header>
