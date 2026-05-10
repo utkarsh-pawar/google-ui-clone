@@ -35,7 +35,8 @@ export async function GET(request) {
     return Response.json({ ok: false, skipped: true, reason: 'autoMode is off' });
   }
 
-  const channelId = config.channelId || 'chants';
+  const channelId   = config.channelId   || 'chants';
+  const videoFormat = config.videoFormat || 'portrait';
   const today = WEEKDAY[new Date().getDay()];
   const jobId = `job_${Date.now()}`;
 
@@ -68,7 +69,7 @@ export async function GET(request) {
         angle: today.angle,
         genre: 'chants',
         deity: today.deity,
-        format: 'portrait',
+        format: videoFormat,
         language: 'hi',
       }),
       signal: AbortSignal.timeout(30000),
@@ -99,7 +100,7 @@ export async function GET(request) {
       script: scriptData.script,
       appUrl,
       language: 'hi',
-      format: 'portrait',
+      format: videoFormat,
     });
 
     await updateJob(jobId, {

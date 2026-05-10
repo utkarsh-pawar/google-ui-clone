@@ -375,15 +375,19 @@ export async function runPipeline({ jobId, deity, angle, topic, genre, channelId
     })
   );
 
-  // Phase: audio
+  // Phase: audio (parallel in batches of 4 to stay within TTS rate limits)
   await updateJob(jobId, { status: 'audio', progress: `0/${scenes.length} audio clips` });
   const ttsStyle = ['chants', 'wisdom', 'chanakya'].includes(genre) ? 'spiritual' : '';
 
-  const audioBuffers = [];
-  for (let i = 0; i < scenes.length; i++) {
-    const buf = await fetchAudio(scenes[i].narration || scenes[i].scenePrompt, language, ttsStyle, appUrl);
-    audioBuffers.push(buf);
-    await updateJob(jobId, { progress: `${i + 1}/${scenes.length} audio clips` });
+  const audioBuffers = new Array(scenes.length).fill(null);
+  const AUDIO_BATCH = 4;
+  for (let b = 0; b < scenes.length; b += AUDIO_BATCH) {
+    const chunk = scenes.slice(b, b + AUDIO_BATCH);
+    const results = await Promise.all(
+      chunk.map(scene => fetchAudio(scene.narration || scene.scenePrompt, language, ttsStyle, appUrl))
+    );
+    results.forEach((buf, j) => { audioBuffers[b + j] = buf; });
+    await updateJob(jobId, { progress: `${Math.min(b + AUDIO_BATCH, scenes.length)}/${scenes.length} audio clips` });
   }
 
   // Build scene objects — skip scenes with no image

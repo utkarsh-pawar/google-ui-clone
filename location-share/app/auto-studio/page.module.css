@@ -64,6 +64,16 @@
 
 .hint { font-size: 11px; color: #2d3a5a; text-align: center; padding: 4px 0; }
 
+/* Format picker */
+.fmtRow { display: flex; gap: 8px; flex-wrap: wrap; }
+.fmtBtn { flex: 1; min-width: 100px; padding: 10px 8px; border-radius: 10px; border: 1px solid #1a2035; background: #0d1526; color: #6b7db3; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; transition: border-color 0.15s, color 0.15s; }
+.fmtBtn:hover:not(:disabled) { border-color: #6366f1; color: #c7d2fe; }
+.fmtBtnActive { border-color: #6366f1 !important; background: rgba(99,102,241,0.12) !important; color: #a5b4fc !important; }
+.fmtBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.fmtLabel { font-size: 14px; font-weight: 700; display: block; margin-bottom: 2px; }
+.fmtMeta { font-size: 10px; color: #4a5580; }
+.fmtBtnActive .fmtMeta { color: #818cf8; }
+
 /* Interrupted generation card */
 .cardInterrupted { border-color: #78350f55; background: #1a0f00; }
 .intMeta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: -4px; }
