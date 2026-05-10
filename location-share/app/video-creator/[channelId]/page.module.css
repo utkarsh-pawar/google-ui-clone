@@ -543,8 +543,75 @@
 }
 .charRemoveBtn:hover { border-color: #ef4444; color: #ef4444; }
 
+/* ── AI Daily Pick card ────────────────────────────────────────────────────── */
+.aiPickCard {
+  background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(168,85,247,0.10));
+  border: 1px solid rgba(168,85,247,0.3);
+  border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 8px;
+}
+.aiPickLabel { font-size: 10px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; }
+.aiPickDeity { font-size: 18px; font-weight: 800; color: #a855f7; }
+.aiPickTopic { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.4; }
+.aiPickWhy   { font-size: 11px; color: var(--muted); }
+.aiPickLoading { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.aiPickEmpty { font-size: 12px; color: var(--dim); }
+.aiPickBtn {
+  margin-top: 4px; padding: 12px 18px; border-radius: 10px; border: none;
+  background: linear-gradient(135deg, #6366f1, #a855f7); color: #fff;
+  font-size: 15px; font-weight: 700; cursor: pointer; display: flex;
+  align-items: center; justify-content: center; gap: 8px; transition: opacity 0.15s;
+  min-height: 48px;
+}
+.aiPickBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.aiPickBtn:hover:not(:disabled) { opacity: 0.88; }
+
+/* ── Responsive / Mobile ───────────────────────────────────────────────────── */
 @media (max-width: 900px) {
   .formBody { flex-direction: column; align-items: stretch; }
   .autoPanel { max-width: 100%; }
   .charRow { grid-template-columns: 90px 1fr 110px 22px; }
+}
+
+@media (max-width: 640px) {
+  .page { padding: 0; }
+  .header { padding: 10px 14px; flex-wrap: wrap; gap: 8px; }
+  .headerCenter { gap: 6px; }
+  .title { font-size: 16px; }
+  .subtitle { font-size: 10px; }
+  .logo { font-size: 22px; }
+  .headerLinks { gap: 8px; }
+  .historyLink { font-size: 11px; padding: 4px 8px; }
+
+  .formBody { padding: 10px; gap: 10px; }
+  .autoPanel { padding: 14px; border-radius: 14px; gap: 16px; }
+  .autoPanelTitle { font-size: 14px; }
+
+  .genreGrid { gap: 6px; }
+  .genreBtn { padding: 8px 10px; border-radius: 8px; min-height: 48px; }
+  .genreLabel { font-size: 12px; }
+  .genreDesc { font-size: 9px; }
+
+  .formatToggle { gap: 6px; }
+  .formatToggleBtn { padding: 8px 10px; font-size: 12px; min-height: 44px; border-radius: 8px; }
+
+  .deitySelect { font-size: 15px; padding: 12px 14px; min-height: 48px; }
+
+  .fetchIdeasBtn { font-size: 14px; padding: 14px; min-height: 52px; border-radius: 12px; }
+  .ideaCard { padding: 12px; border-radius: 10px; }
+  .ideaTopic { font-size: 13px; }
+  .ideaHook { font-size: 11px; }
+  .ideaWhy { font-size: 10px; }
+
+  .titleOptionBtn { padding: 12px; min-height: 52px; }
+  .titleOptionText { font-size: 13px; }
+
+  .formCard { padding: 14px; border-radius: 14px; }
+  .scriptInput { font-size: 13px; min-height: 100px; }
+
+  .controlRow { flex-wrap: wrap; gap: 8px; }
+  .selectInput { font-size: 13px; padding: 8px 10px; min-height: 44px; }
+  .generateBtn { font-size: 15px; padding: 14px; min-height: 52px; }
+
+  .charRow { grid-template-columns: 1fr; gap: 6px; }
+  .charInput { min-height: 44px; font-size: 13px; }
 }
