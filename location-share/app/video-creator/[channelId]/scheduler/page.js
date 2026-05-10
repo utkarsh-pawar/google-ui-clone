@@ -104,7 +104,7 @@ export default function ChannelSchedulerPage() {
     if (runningRef.current) return;
     runningRef.current = true;
     const shortTitle = topicObj.topic.slice(0, 50);
-    addLog(`🚀 Auto-generating for ${slotLabel} IST — "${shortTitle}…"`);
+    addLog(`🚀 Starting 35 min early → publishes at ${slotLabel} IST — "${shortTitle}…"`);
 
     try {
       const lang = channelId === 'chants' ? 'hi' : 'en';
@@ -151,9 +151,11 @@ export default function ChannelSchedulerPage() {
     }
   }, [addLog, addProcessed, startGeneration, ytConnected, channelId, router]);
 
-  // Check every 60s if any schedule slot is now (within 2 min window)
+  // Check every 60s — start render 35 min before each slot so the video
+  // is ready and uploaded well before the scheduled publish time.
   useEffect(() => {
     if (!autoMode) return;
+    const EARLY_MIN = 35;
     const IST_OFFSET = 5.5 * 60;
     const check = () => {
       const now = new Date();
@@ -161,7 +163,8 @@ export default function ChannelSchedulerPage() {
       for (const slot of scheduleSlots) {
         const [h, m] = slot.split(':').map(Number);
         const slotMin = h * 60 + m;
-        if (Math.abs(istMin - slotMin) > 2) continue;
+        const triggerMin = (slotMin - EARLY_MIN + 24 * 60) % (24 * 60);
+        if (Math.abs(istMin - triggerMin) > 2) continue;
         const key = autoKey(channelId, slot);
         if (localStorage.getItem(key)) continue;
         localStorage.setItem(key, '1');
