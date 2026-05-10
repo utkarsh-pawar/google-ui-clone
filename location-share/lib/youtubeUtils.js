@@ -51,7 +51,7 @@ export async function getFreshToken(channelId) {
   return data.access_token;
 }
 
-export async function uploadToYouTube({ videoBlob, title, description, tags = [], channelId }) {
+export async function uploadToYouTube({ videoBlob, title, description, tags = [], channelId, publishAt = null }) {
   const accessToken = await getFreshToken(channelId);
 
   const metadata = {
@@ -60,12 +60,11 @@ export async function uploadToYouTube({ videoBlob, title, description, tags = []
       description,
       tags: tags.map(t => t.replace(/^#/, '')).slice(0, 15),
       categoryId: '27',
-      defaultLanguage: 'en',
+      defaultLanguage: 'hi',
     },
-    status: {
-      privacyStatus: 'public',
-      selfDeclaredMadeForKids: false,
-    },
+    status: publishAt
+      ? { privacyStatus: 'private', publishAt: new Date(publishAt).toISOString(), selfDeclaredMadeForKids: false }
+      : { privacyStatus: 'public', selfDeclaredMadeForKids: false },
   };
 
   const initRes = await fetch(
@@ -108,9 +107,9 @@ export async function uploadToYouTube({ videoBlob, title, description, tags = []
   const videoId = result.id;
   const videoUrl = `https://www.youtube.com/shorts/${videoId}`;
 
-  saveUploadHistory({ videoId, videoUrl, title, channelId, uploadedAt: new Date().toISOString() });
+  saveUploadHistory({ videoId, videoUrl, title, channelId, uploadedAt: new Date().toISOString(), publishAt: publishAt ? new Date(publishAt).toISOString() : null });
 
-  return { videoId, videoUrl };
+  return { videoId, videoUrl, publishAt };
 }
 
 export async function uploadThumbnail(videoId, thumbnailBlob, channelId) {
