@@ -424,14 +424,23 @@ Return JSON only:
 }`;
 
   try {
-    const res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+    // Groq (llama-3.3-70b) is primary — free, faster, much better quality
+    // Falls back to Cerebras llama3.1-8b if GROQ_API_KEY not set
+    const groqKey = process.env.GROQ_API_KEY;
+    const useCerebras = !groqKey;
+
+    const llmUrl    = useCerebras ? 'https://api.cerebras.ai/v1/chat/completions' : 'https://api.groq.com/openai/v1/chat/completions';
+    const llmKey    = useCerebras ? apiKey : groqKey;
+    const llmModel  = useCerebras ? 'llama3.1-8b' : 'llama-3.3-70b-versatile';
+
+    const res = await fetch(llmUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${llmKey}`,
       },
       body: JSON.stringify({
-        model: 'llama3.1-8b',
+        model: llmModel,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
@@ -445,7 +454,8 @@ Return JSON only:
 
     if (!res.ok) {
       const errBody = await res.text().catch(() => '');
-      let errMsg = `Cerebras ${res.status}`;
+      const provider = useCerebras ? 'Cerebras' : 'Groq';
+      let errMsg = `${provider} ${res.status}`;
       try { errMsg = JSON.parse(errBody)?.error?.message || errMsg; } catch {}
       throw new Error(`${errMsg} | body: ${errBody.slice(0, 300)}`);
     }
