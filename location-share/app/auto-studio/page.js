@@ -46,11 +46,12 @@ function duration(job) {
 }
 
 export default function AutoStudioPage() {
-  const [jobs, setJobs]         = useState([]);
-  const [autoMode, setAutoMode] = useState(false);
-  const [saving, setSaving]     = useState(false);
-  const [ytStored, setYtStored] = useState(false);
-  const [lastPoll, setLastPoll] = useState(null);
+  const [jobs, setJobs]               = useState([]);
+  const [autoMode, setAutoMode]       = useState(false);
+  const [videoFormat, setVideoFormat] = useState('portrait');
+  const [saving, setSaving]           = useState(false);
+  const [ytStored, setYtStored]       = useState(false);
+  const [lastPoll, setLastPoll]       = useState(null);
   const pollRef = useRef(null);
 
   const fetchStatus = useCallback(async () => {
@@ -59,6 +60,7 @@ export default function AutoStudioPage() {
       const data = await res.json();
       setJobs(data.jobs || []);
       setAutoMode(!!data.config?.autoMode);
+      setVideoFormat(data.config?.videoFormat || 'portrait');
       setLastPoll(Date.now());
     } catch {}
   }, []);
@@ -75,19 +77,28 @@ export default function AutoStudioPage() {
     return () => clearInterval(pollRef.current);
   }, [fetchStatus]);
 
-  const toggleAutoMode = useCallback(async () => {
-    const next = !autoMode;
+  const saveConfig = useCallback(async (patch) => {
     setSaving(true);
     try {
       await fetch('/api/studio-config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ autoMode: next, channelId: 'chants' }),
+        body: JSON.stringify({ autoMode, videoFormat, channelId: 'chants', ...patch }),
       });
-      setAutoMode(next);
     } catch {}
     setSaving(false);
-  }, [autoMode]);
+  }, [autoMode, videoFormat]);
+
+  const toggleAutoMode = useCallback(async () => {
+    const next = !autoMode;
+    await saveConfig({ autoMode: next });
+    setAutoMode(next);
+  }, [autoMode, saveConfig]);
+
+  const changeFormat = useCallback(async (fmt) => {
+    setVideoFormat(fmt);
+    await saveConfig({ videoFormat: fmt });
+  }, [saveConfig]);
 
   const activeJob = jobs.find(j => !['done', 'failed'].includes(j.status));
   const recentDone = jobs.filter(j => ['done', 'failed'].includes(j.status)).slice(0, 8);
@@ -137,6 +148,34 @@ export default function AutoStudioPage() {
           {autoMode && (
             <div className={styles.warn}>
               ⚡ Server runs even when this tab is closed. Connect YouTube below to enable auto-upload.
+            </div>
+          )}
+        </div>
+
+        {/* Video format */}
+        <div className={styles.card}>
+          <div className={styles.cardTitle}>🎬 Video Format</div>
+          <div className={styles.autoDesc}>Choose the format for every scheduled upload.</div>
+          <div className={styles.fmtRow}>
+            {[
+              { id: 'portrait',  icon: '📱', label: 'Shorts',    meta: '~45 sec · 9:16 vertical' },
+              { id: 'landscape', icon: '📺', label: 'Long video', meta: '~5 min · 16:9 horizontal' },
+              { id: 'longform',  icon: '🎥', label: 'Full story', meta: '~7 min · 16:9 horizontal' },
+            ].map(f => (
+              <button
+                key={f.id}
+                className={`${styles.fmtBtn} ${videoFormat === f.id ? styles.fmtBtnActive : ''}`}
+                onClick={() => changeFormat(f.id)}
+                disabled={saving}
+              >
+                <span className={styles.fmtLabel}>{f.icon} {f.label}</span>
+                <span className={styles.fmtMeta}>{f.meta}</span>
+              </button>
+            ))}
+          </div>
+          {videoFormat !== 'portrait' && (
+            <div className={styles.warn}>
+              ⏱ Long videos may use the full 5-min server budget. Make sure your Vercel plan supports <code>maxDuration=300</code>.
             </div>
           )}
         </div>
