@@ -332,6 +332,25 @@
 }
 .logLine:last-child { border-bottom: none; }
 
+/* System status grid */
+.statusGrid { display: flex; flex-direction: column; gap: 10px; }
+.statusItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+.statusOk { border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.04); }
+.statusWarn { border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.04); }
+.statusNeutral { border-color: rgba(99,102,241,0.2); background: rgba(99,102,241,0.04); }
+.statusIcon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.statusLabel { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.statusVal { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.statusHint { font-size: 11px; color: #f59e0b; margin-top: 4px; line-height: 1.5; }
+
 /* Posting schedule picker */
 .slotRow { display: flex; gap: 10px; margin: 12px 0 8px; flex-wrap: wrap; }
 .slotItem { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 100px; }

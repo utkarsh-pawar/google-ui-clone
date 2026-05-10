@@ -41,11 +41,13 @@ export default function ChannelSchedulerPage() {
   // Posting schedule
   const [scheduleSlots, setScheduleSlots] = useState(['08:00', '13:00', '18:00']);
   const [nextPublish, setNextPublish] = useState(null);
+  const [sysStatus, setSysStatus] = useState(null);
 
   useEffect(() => {
     const saved = loadSchedule();
     setScheduleSlots(saved);
     setNextPublish(getNextPublishTime());
+    fetch('/api/debug').then(r => r.json()).then(setSysStatus).catch(() => {});
   }, []);
 
   const addLog = useCallback((msg) => {
@@ -286,6 +288,42 @@ export default function ChannelSchedulerPage() {
             </div>
           )}
         </div>
+
+        {/* System status — KV, Groq, TTS */}
+        {sysStatus && (
+          <div className={styles.card}>
+            <div className={styles.cardTitle}>🔧 System Status</div>
+            <div className={styles.statusGrid}>
+              <div className={`${styles.statusItem} ${sysStatus.KV_queue?.startsWith('connected') ? styles.statusOk : styles.statusWarn}`}>
+                <span className={styles.statusIcon}>{sysStatus.KV_queue?.startsWith('connected') ? '✅' : '⚠️'}</span>
+                <div>
+                  <div className={styles.statusLabel}>KV Queue</div>
+                  <div className={styles.statusVal}>{sysStatus.KV_queue?.startsWith('connected') ? 'Connected — queue persists across restarts' : 'Not set — queue is in-memory only (lost on restart)'}</div>
+                  {!sysStatus.KV_queue?.startsWith('connected') && (
+                    <div className={styles.statusHint}>Add Vercel KV storage in Dashboard → Storage → Create KV → link to project</div>
+                  )}
+                </div>
+              </div>
+              <div className={`${styles.statusItem} ${sysStatus.GROQ_API_KEY !== 'NOT SET — get free key at console.groq.com' ? styles.statusOk : styles.statusWarn}`}>
+                <span className={styles.statusIcon}>{sysStatus.GROQ_API_KEY?.startsWith('set') ? '✅' : '⚠️'}</span>
+                <div>
+                  <div className={styles.statusLabel}>AI Script (Groq)</div>
+                  <div className={styles.statusVal}>{sysStatus.script_model || '—'}</div>
+                  {!sysStatus.GROQ_API_KEY?.startsWith('set') && (
+                    <div className={styles.statusHint}>Get free key at console.groq.com → add GROQ_API_KEY to Vercel env</div>
+                  )}
+                </div>
+              </div>
+              <div className={`${styles.statusItem} ${sysStatus.ELEVENLABS_API_KEY?.startsWith('set') ? styles.statusOk : styles.statusNeutral}`}>
+                <span className={styles.statusIcon}>{sysStatus.ELEVENLABS_API_KEY?.startsWith('set') ? '✅' : 'ℹ️'}</span>
+                <div>
+                  <div className={styles.statusLabel}>Voice (TTS)</div>
+                  <div className={styles.statusVal}>{sysStatus.tts_active_source || '—'}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Auto-mode control */}
         <div className={`${styles.card} ${autoMode ? styles.cardActive : ''}`}>
