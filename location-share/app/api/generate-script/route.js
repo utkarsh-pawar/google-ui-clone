@@ -382,6 +382,12 @@ async function tryGenerate(llmUrl, llmKey, llmModel, systemPrompt, userPrompt, a
 
     const code = errData?.error?.code || '';
     const msg  = errData?.error?.message || `HTTP ${res.status}`;
+
+    if (res.status === 429) {
+      const retryAfter = parseInt(res.headers.get('retry-after') || '0', 10) || 5;
+      throw Object.assign(new Error(`Rate limit exceeded (retry after ${retryAfter}s)`), { retryable: true, rateLimit: true, retryAfter });
+    }
+
     const retryable = code === 'json_validate_failed' || res.status >= 500;
     throw Object.assign(new Error(`${msg} | body: ${errBody.slice(0, 200)}`), { retryable });
   }
@@ -482,22 +488,48 @@ Return JSON only:
 }`;
 
   try {
-    const groqKey   = process.env.GROQ_API_KEY;
-    const useCerebras = !groqKey;
-    const llmUrl    = useCerebras ? 'https://api.cerebras.ai/v1/chat/completions' : 'https://api.groq.com/openai/v1/chat/completions';
-    const llmKey    = useCerebras ? apiKey : groqKey;
-    const llmModel  = useCerebras ? 'llama3.1-8b' : 'llama-3.3-70b-versatile';
+    const groqKey  = process.env.GROQ_API_KEY;
+    const hasGroq  = !!groqKey;
+    const hasCereb = !!apiKey;
+
+    // Provider configs — Groq is primary (70b), Cerebras is fallback (8b)
+    const GROQ   = { url: 'https://api.groq.com/openai/v1/chat/completions',  key: groqKey, model: 'llama-3.3-70b-versatile' };
+    const CEREB  = { url: 'https://api.cerebras.ai/v1/chat/completions',       key: apiKey,  model: 'llama3.1-8b' };
+
+    // Build ordered provider list: prefer Groq, fallback to Cerebras
+    const providers = hasGroq ? [GROQ, hasCereb ? CEREB : null].filter(Boolean)
+                              : hasCereb ? [CEREB] : [];
+    if (!providers.length) throw new Error('No LLM provider configured (set GROQ_API_KEY or CEREBRAS_API_KEY)');
 
     let parsed = null;
     let lastErr = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
+    let providerIdx = 0;
+
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const p = providers[providerIdx];
       try {
-        parsed = await tryGenerate(llmUrl, llmKey, llmModel, systemPrompt, userPrompt, attempt);
+        parsed = await tryGenerate(p.url, p.key, p.model, systemPrompt, userPrompt, attempt);
         break;
       } catch (err) {
         lastErr = err;
-        if (!err.retryable || attempt === 2) break;
-        await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+        if (!err.retryable) break;
+
+        if (err.rateLimit) {
+          // Rate limited — try next provider immediately (no wait)
+          const nextIdx = providerIdx + 1;
+          if (nextIdx < providers.length) {
+            providerIdx = nextIdx;
+            continue; // retry immediately with new provider
+          }
+          // All providers rate limited — wait then cycle back
+          const wait = Math.min((err.retryAfter || 5) * 1000, 8000);
+          await new Promise(r => setTimeout(r, wait));
+          providerIdx = 0; // reset to primary after waiting
+        } else {
+          // JSON/5xx error — stay on same provider, short backoff
+          if (attempt >= 3) break;
+          await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+        }
       }
     }
     if (!parsed) throw lastErr;
