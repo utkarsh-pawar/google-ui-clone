@@ -106,6 +106,10 @@ function TimePicker({ value, onChange, onClear, label }) {
   );
 }
 
+const SNAP_KEY   = 'auto_studio_snap';
+const PARAMS_KEY = 'auto_studio_params';
+const DONE_STATUSES = new Set(['done', 'cancelled', 'error']);
+
 export default function V2Page() {
   const { active, startGeneration, approvePhase } = useGeneration();
   const [autoMode, setAutoMode]   = useState(false);
@@ -116,6 +120,7 @@ export default function V2Page() {
   const [countdown, setCountdown] = useState('--:--:--');
   const [nextTrig, setNextTrig]   = useState(null);
   const [perfRank, setPerfRank]   = useState([]);
+  const [interrupted, setInterrupted] = useState(null); // { snap, params }
   const runRef = useRef(false);
 
   useEffect(() => {
@@ -126,6 +131,14 @@ export default function V2Page() {
     setPerfRank(deityRanking(h));
     setAutoMode(localStorage.getItem('auto_studio_auto') === 'true');
     try { setLog(JSON.parse(localStorage.getItem('auto_studio_log') || '[]')); } catch {}
+    // Detect interrupted generation from previous session
+    try {
+      const snap   = JSON.parse(localStorage.getItem(SNAP_KEY)   || 'null');
+      const params = JSON.parse(localStorage.getItem(PARAMS_KEY) || 'null');
+      if (snap && params && !DONE_STATUSES.has(snap.status) && Date.now() - snap.savedAt < 30 * 60 * 1000) {
+        setInterrupted({ snap, params });
+      }
+    } catch {}
   }, []);
 
   const addLog = useCallback((msg) => {
@@ -136,6 +149,52 @@ export default function V2Page() {
       return next;
     });
   }, []);
+
+  // Persist live progress snapshot so refresh shows what was happening
+  useEffect(() => {
+    if (!active) return;
+    try {
+      localStorage.setItem(SNAP_KEY, JSON.stringify({
+        status: active.status,
+        progress: active.progress,
+        title: active.title,
+        deity: active.deity,
+        angle: active.angle,
+        topic: active.topic,
+        savedAt: Date.now(),
+      }));
+    } catch {}
+    if (DONE_STATUSES.has(active.status)) {
+      localStorage.removeItem(SNAP_KEY);
+      localStorage.removeItem(PARAMS_KEY);
+      setInterrupted(null);
+    }
+  }, [active?.status, active?.progress?.current]);
+
+  // Restart a generation from saved params (after page refresh)
+  const restart = useCallback(async (params) => {
+    if (runRef.current) return;
+    setInterrupted(null);
+    localStorage.removeItem(SNAP_KEY);
+    runRef.current = true;
+    addLog(`↺ Restarting interrupted generation: ${params.deity || ''} ${params.topic?.slice(0, 40) || ''}`);
+    try {
+      await startGeneration({
+        ...params,
+        autoUpload: ytConnected,
+        onComplete: (result) => {
+          if (result.ytVideoUrl) addLog(`🎉 Live on YouTube → ${result.ytVideoUrl}`);
+          else addLog('📁 Rendered locally — connect YouTube to auto-upload');
+          const h = getUploadHistory();
+          setHistory(h); setPerfRank(deityRanking(h));
+          runRef.current = false;
+        },
+      });
+    } catch (err) {
+      addLog(`❌ Restart failed: ${err.message}`);
+      runRef.current = false;
+    }
+  }, [ytConnected, addLog, startGeneration]);
 
   // Zero-click: auto-approve review phases
   useEffect(() => {
@@ -184,14 +243,18 @@ export default function V2Page() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       addLog(`✅ Script ready: "${(data.youtubeTitle || d.topic).slice(0, 55)}"`);
-      await startGeneration({
+      setInterrupted(null);
+      const genParams = {
         script: data.script, style: 'divine', format: 'portrait',
         speedMultiplier: 1, narration: true, voice: 'Brian', language: 'hi',
         titleText: data.suggestedTitle || '', youtubeTitle: data.youtubeTitle || d.topic,
         youtubeDescription: data.description || '', youtubeTags: data.tags || CHANTS_TAGS,
-        channelId: 'chants', autoUpload: ytConnected,
+        channelId: 'chants', deity: d.deity, angle, topic: d.topic, genre: 'chants',
+      };
+      try { localStorage.setItem(PARAMS_KEY, JSON.stringify(genParams)); } catch {}
+      await startGeneration({
+        ...genParams, autoUpload: ytConnected,
         // no publishAt — uploads as public immediately when render is done
-        deity: d.deity, angle, topic: d.topic, genre: 'chants',
         onComplete: (result) => {
           if (result.ytVideoUrl) addLog(`🎉 Live on YouTube → ${result.ytVideoUrl}`);
           else addLog('📁 Rendered locally — connect YouTube to auto-upload');
@@ -319,6 +382,33 @@ export default function V2Page() {
             </div>
           )}
         </div>
+
+        {/* Interrupted generation — detected after page refresh */}
+        {interrupted && !isRunning && (
+          <div className={`${styles.card} ${styles.cardInterrupted}`}>
+            <div className={styles.cardHead}>
+              <div className={styles.cardTitle}>⚠️ Generation Interrupted</div>
+              <button className={styles.clearBtn} onClick={() => {
+                localStorage.removeItem(SNAP_KEY); localStorage.removeItem(PARAMS_KEY);
+                setInterrupted(null);
+              }}>Dismiss</button>
+            </div>
+            <div className={styles.intMeta}>
+              {interrupted.snap.deity && <span className={styles.tag}>{interrupted.snap.deity}</span>}
+              {interrupted.snap.angle && <span className={styles.tag}>{interrupted.snap.angle}</span>}
+              <span className={styles.intStep}>{interrupted.snap.progress?.step || interrupted.snap.status}</span>
+            </div>
+            {interrupted.snap.title && (
+              <div className={styles.intTitle}>{interrupted.snap.title}</div>
+            )}
+            <div className={styles.intNote}>
+              Page was refreshed mid-generation. All images and audio are gone from memory, but the script is saved — click Restart to redo from the beginning (no new API call needed).
+            </div>
+            <button className={styles.restartBtn} onClick={() => restart(interrupted.params)}>
+              ↺ Restart Generation
+            </button>
+          </div>
+        )}
 
         {/* Today's deity */}
         <div className={styles.card} style={{ borderLeftColor: d.color, borderLeftWidth: 4 }}>

@@ -135,6 +135,15 @@
 
 .hint { font-size: 11px; color: #2d3a5a; text-align: center; padding: 4px 0; }
 
+/* Interrupted generation card */
+.cardInterrupted { border-color: #78350f55; background: #1a0f00; }
+.intMeta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: -4px; }
+.intStep { font-size: 11px; color: #92400e; }
+.intTitle { font-size: 13px; color: #c8d0f0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.intNote { font-size: 11px; color: #6b7db3; line-height: 1.5; }
+.restartBtn { background: #6366f1; color: #fff; border: none; padding: 9px 18px; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; align-self: flex-start; }
+.restartBtn:hover { background: #4f52cc; }
+
 @media (max-width: 600px) {
   .header { flex-wrap: wrap; gap: 10px; }
   .nav { gap: 6px; }
