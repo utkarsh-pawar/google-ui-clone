@@ -404,7 +404,7 @@ async function tryGenerate(llmUrl, llmKey, llmModel, systemPrompt, userPrompt, a
 }
 
 export async function POST(request) {
-  const { topic, angle, genre = 'finance', format = 'portrait', language = 'en', characters = [], deity = '' } = await request.json();
+  const { topic, angle, genre = 'finance', format = 'portrait', language = 'en', characters = [], deity = '', performanceSummary = '' } = await request.json();
   if (!topic) return Response.json({ error: 'Missing topic' }, { status: 400 });
   // Prepend deity focus so the AI stays on the right god throughout the script
   const effectiveTopic = deity ? `${deity} — ${topic}` : topic;
@@ -463,10 +463,18 @@ ${characters.map(c => {
 CONSISTENCY RULE: Never paraphrase a character's appearance — copy the exact string every time they appear in an S- prompt.`
     : '';
 
+  const perfNote = performanceSummary
+    ? `\nCHANNEL PERFORMANCE CONTEXT (use this to optimise content decisions):
+${performanceSummary}
+→ Write content that matches the style, deity, and angle that historically performed best above.
+→ If a specific deity outperforms others, lean harder into their narrative, emotions, and imagery.
+→ If a specific angle (shloka/story/prayer/wisdom) outperforms, use that structure.\n`
+    : '';
+
   const userPrompt = `Write a maximum-virality YouTube script about: "${effectiveTopic}"
 Angle: ${angle || 'most viral possible'}
 ${formatNote}
-${langNote}${charBlock}
+${langNote}${perfNote}${charBlock}
 
 TITLE RULES: All 3 title options must use different virality formulas:
   Option 1: Shock/controversy angle ("The [topic] truth nobody admits")
