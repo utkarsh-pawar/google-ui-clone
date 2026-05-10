@@ -94,7 +94,7 @@ async function autoUploadToYouTube(blob, { youtubeTitle, youtubeDescription, you
     const result = await uploadRes.json();
     const videoId = result.id;
     const ytUrl = `https://www.youtube.com/shorts/${videoId}`;
-    saveUploadHistoryEntry?.({ videoId, videoUrl: ytUrl, title: youtubeTitle, channelId, uploadedAt: new Date().toISOString() });
+    saveUploadHistoryEntry?.({ videoId, videoUrl: ytUrl, title: youtubeTitle, channelId, uploadedAt: new Date().toISOString(), deity: deity || '', angle: angle || '', genre: genre || '', topic: topic || '' });
     return { videoId, videoUrl: ytUrl };
   } catch (err) {
     console.warn('Auto-upload failed:', err.message);
@@ -180,7 +180,7 @@ export function GenerationProvider({ children }) {
   const startGeneration = useCallback(async ({
     script, style, format, language = 'en', speedMultiplier, narration, voice,
     titleText, youtubeTitle, youtubeDescription, youtubeTags, channelId,
-    genre = '',
+    genre = '', deity = '', angle = '', topic = '',
     showSubtitles = true,
     characters = [],
     autoUpload = false,

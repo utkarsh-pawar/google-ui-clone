@@ -1,0 +1,53 @@
+:root { --bg: #0a0a0f; --card: #13131a; --border: #1e1e2e; --text: #e8e8f0; --muted: #6b6b8a; --dim: #3d3d5c; --accent: #6366f1; }
+
+.page { min-height: 100vh; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+
+.header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.back { color: var(--muted); text-decoration: none; font-size: 14px; }
+.back:hover { color: var(--text); }
+.title { font-size: 16px; font-weight: 700; }
+.refreshBtn { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: 8px; font-size: 13px; cursor: pointer; }
+.refreshBtn:hover:not(:disabled) { border-color: var(--accent); }
+
+.body { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+.cardTitle { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+
+.rankList { display: flex; flex-direction: column; gap: 10px; }
+.rankRow { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.rankNum { width: 20px; color: var(--dim); font-weight: 700; }
+.rankName { flex: 1; font-weight: 600; }
+.rankStat { color: var(--accent); font-weight: 600; }
+.rankEng  { color: #ec4899; font-size: 12px; }
+.rankCount { color: var(--dim); font-size: 11px; }
+
+.highlights { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.highlightCard { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+.best  { border-color: rgba(34,197,94,0.3); }
+.worst { border-color: rgba(239,68,68,0.25); }
+.hlLabel { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); }
+.hlTitle { font-size: 13px; font-weight: 600; line-height: 1.3; }
+.hlStats { font-size: 11px; color: var(--muted); }
+.hlLink  { font-size: 12px; color: var(--accent); text-decoration: none; }
+
+.historySection { padding: 14px; }
+.historyList { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.historyRow { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; align-items: center; gap: 10px; }
+.historyInfo { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.historyTitle { font-size: 13px; font-weight: 600; line-height: 1.3; }
+.historyMeta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.tag { background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.25); border-radius: 4px; padding: 2px 6px; font-size: 10px; color: var(--accent); }
+.date { font-size: 11px; color: var(--dim); }
+
+.historyStats { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.statViews { font-size: 13px; font-weight: 600; }
+.statLikes { font-size: 13px; color: #ec4899; }
+.noStats { font-size: 11px; color: var(--dim); }
+.watchLink { color: var(--accent); text-decoration: none; font-size: 16px; }
+
+.empty { padding: 32px 16px; text-align: center; color: var(--muted); font-size: 14px; line-height: 1.6; }
+
+@media (max-width: 480px) {
+  .highlights { grid-template-columns: 1fr; }
+  .rankRow { flex-wrap: wrap; }
+}
