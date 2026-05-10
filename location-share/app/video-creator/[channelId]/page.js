@@ -49,6 +49,8 @@ export default function ChannelVideoCreator() {
   const [narration, setNarration] = useState(true);
   const [voice, setVoice] = useState(TTS_VOICES[0].id);
 
+  const availableVoices = TTS_VOICES.filter(v => v.lang === language);
+
   // Character registry — locked appearance descriptions injected into every scene image prompt
   const [characters, setCharacters] = useState([]);
   const addCharacter = () => setCharacters(c => [...c, { name: '', appearance: '', outfit: '' }]);
@@ -269,7 +271,11 @@ export default function ChannelVideoCreator() {
                 <button
                   key={l.id}
                   className={`${styles.formatToggleBtn} ${language === l.id ? styles.formatToggleBtnActive : ''}`}
-                  onClick={() => { setLanguage(l.id); setIdeas([]); setSelectedIdea(null); setPendingScript(null); setTitleOptions(null); }}
+                  onClick={() => {
+                    setLanguage(l.id);
+                    setVoice(TTS_VOICES.find(v => v.lang === l.id)?.id || TTS_VOICES[0].id);
+                    setIdeas([]); setSelectedIdea(null); setPendingScript(null); setTitleOptions(null);
+                  }}
                 >
                   {l.label}
                 </button>
@@ -458,11 +464,12 @@ export default function ChannelVideoCreator() {
               </label>
               {narration && (
                 <div className={styles.voiceGrid}>
-                  {TTS_VOICES.map(v => (
+                  {availableVoices.map(v => (
                     <button key={v.id}
                       className={`${styles.styleBtn} ${voice === v.id ? styles.styleBtnActive : ''}`}
                       onClick={() => setVoice(v.id)}>
                       {v.label}
+                      {v.desc && <span style={{ fontSize: '10px', opacity: 0.6, display: 'block' }}>{v.desc}</span>}
                     </button>
                   ))}
                 </div>
