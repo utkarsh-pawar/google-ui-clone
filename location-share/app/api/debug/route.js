@@ -6,12 +6,20 @@ export async function GET() {
     : googleTts  ? 'google-cloud-wavenet (natural Hindi/English)'
     : 'google-translate (free but robotic) — set ELEVENLABS_API_KEY to upgrade';
 
+  const upstashUrl   = process.env.UPSTASH_REDIS_REST_URL   || process.env.KV_REST_API_URL;
+  const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+  const redisConnected = !!(upstashUrl && upstashToken);
+
   return Response.json({
     tts_active_source: ttsSource,
     ELEVENLABS_API_KEY: elevenlabs ? `set (${elevenlabs.slice(0, 8)}...)` : 'NOT SET — get free key at elevenlabs.io',
     GOOGLE_TTS_KEY:     googleTts  ? `set (${googleTts.slice(0, 8)}...)`  : 'NOT SET',
     CEREBRAS_API_KEY:   process.env.CEREBRAS_API_KEY ? `set (${process.env.CEREBRAS_API_KEY.slice(0, 8)}...)` : 'NOT SET',
-    KV_queue:           process.env.KV_REST_API_URL ? 'connected (persistent ✓)' : 'NOT SET — queue is in-memory only, add Vercel KV storage',
+    KV_queue:           redisConnected
+      ? 'connected (persistent ✓)'
+      : 'NOT SET — queue is in-memory only. Sign up free at upstash.com → create Redis DB → add UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN to Vercel env',
+    UPSTASH_REDIS_REST_URL:   upstashUrl   ? 'set' : 'NOT SET',
+    UPSTASH_REDIS_REST_TOKEN: upstashToken ? 'set' : 'NOT SET',
     GROQ_API_KEY:       process.env.GROQ_API_KEY ? `set (${process.env.GROQ_API_KEY.slice(0, 8)}...)` : 'NOT SET — get free key at console.groq.com',
     script_model:       process.env.GROQ_API_KEY ? 'llama-3.3-70b via Groq (active)' : 'llama3.1-8b via Cerebras (fallback)',
     image_model:        'flux via pollinations',
