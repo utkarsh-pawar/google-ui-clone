@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useGeneration } from '@/context/GenerationContext';
-import { loadSchedule, saveSchedule, getNextPublishTime, formatPublishTime, formatIST, TIME_OPTIONS } from '@/lib/postingSchedule';
+import { loadSchedule, saveSchedule, formatIST, TIME_OPTIONS } from '@/lib/postingSchedule';
 import { isYouTubeConnected, getUploadHistory, disconnectYouTube } from '@/lib/youtubeUtils';
 import styles from './page.module.css';
 
@@ -18,20 +18,9 @@ const WEEKDAY = [
 ];
 
 const CHANTS_TAGS = ['#bhagavadgita','#shorts','#spiritual','#hindiwisdom','#hanumanchalisa','#sanatan','#viral','#bhakti','#devotional','#india'];
-const EARLY_MIN  = 45;
 const IST_OFFSET = 5.5 * 60; // minutes
 
 function todayDeity() { return WEEKDAY[new Date().getDay()]; }
-
-function slotToPublishAt(slot) {
-  const [h, m] = slot.split(':').map(Number);
-  const now = new Date();
-  const utcMs = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-    + (h * 60 + m - IST_OFFSET) * 60000;
-  const d = new Date(utcMs);
-  if (d <= now) d.setUTCDate(d.getUTCDate() + 1);
-  return d.toISOString();
-}
 
 function buildPerfSummary(history) {
   const withStats = history.filter(h => h.stats?.views > 0);
@@ -111,7 +100,7 @@ export default function V2Page() {
     }
   }, [active?.status, autoMode, approvePhase, addLog]);
 
-  // Countdown
+  // Countdown to next slot
   useEffect(() => {
     const tick = () => {
       const now = new Date();
@@ -119,8 +108,8 @@ export default function V2Page() {
       let best = null, bestMs = Infinity;
       for (const slot of slots) {
         const [h, m] = slot.split(':').map(Number);
-        const trigMin = (h * 60 + m - EARLY_MIN + 24 * 60) % (24 * 60);
-        let diff = trigMin - istMin; if (diff < 0) diff += 24 * 60;
+        const slotMin = h * 60 + m;
+        let diff = slotMin - istMin; if (diff < 0) diff += 24 * 60;
         const ms = diff * 60000;
         if (ms < bestMs) { bestMs = ms; best = { slot, ms }; }
       }
@@ -132,15 +121,14 @@ export default function V2Page() {
     return () => clearInterval(id);
   }, [slots]);
 
-  // Core generation function
+  // Core generation function — starts at slot time, uploads as public immediately
   const generate = useCallback(async (slot) => {
     if (runRef.current) return;
     runRef.current = true;
     const d = todayDeity();
     const angle = bestAngleFromHistory(history, d.angles);
     const perfSummary = buildPerfSummary(history);
-    const publishAt = slotToPublishAt(slot);
-    addLog(`🚀 ${d.emoji} ${d.hindi} · angle: ${angle} · publishes at ${formatIST(slot)} IST`);
+    addLog(`🚀 ${d.emoji} ${d.hindi} · angle: ${angle} · generating now for ${formatIST(slot)} IST slot`);
     try {
       const res = await fetch('/api/generate-script', {
         method: 'POST',
@@ -155,10 +143,11 @@ export default function V2Page() {
         speedMultiplier: 1, narration: true, voice: 'Brian',
         titleText: data.suggestedTitle || '', youtubeTitle: data.youtubeTitle || d.topic,
         youtubeDescription: data.description || '', youtubeTags: data.tags || CHANTS_TAGS,
-        channelId: 'chants', autoUpload: ytConnected, publishAt,
+        channelId: 'chants', autoUpload: ytConnected,
+        // no publishAt — uploads as public immediately when render is done
         deity: d.deity, angle, topic: d.topic, genre: 'chants',
         onComplete: (result) => {
-          if (result.ytVideoUrl) addLog(`🎉 Uploaded → publishes ${formatPublishTime(new Date(publishAt))}`);
+          if (result.ytVideoUrl) addLog(`🎉 Live on YouTube → ${result.ytVideoUrl}`);
           else addLog('📁 Rendered locally — connect YouTube to auto-upload');
           const h = getUploadHistory();
           setHistory(h); setPerfRank(deityRanking(h));
@@ -171,7 +160,7 @@ export default function V2Page() {
     }
   }, [history, ytConnected, addLog, startGeneration]);
 
-  // Auto-trigger loop (fires 45 min before each slot)
+  // Auto-trigger loop — fires at each slot time
   useEffect(() => {
     if (!autoMode) return;
     const check = () => {
@@ -179,8 +168,8 @@ export default function V2Page() {
       const istMin = ((now.getUTCHours() * 60 + now.getUTCMinutes()) + IST_OFFSET) % (24 * 60);
       for (const slot of slots) {
         const [h, m] = slot.split(':').map(Number);
-        const trigMin = (h * 60 + m - EARLY_MIN + 24 * 60) % (24 * 60);
-        if (Math.abs(istMin - trigMin) > 2) continue;
+        const slotMin = h * 60 + m;
+        if (Math.abs(istMin - slotMin) > 2) continue;
         const key = `auto_fired_${new Date().toDateString()}_${slot}`;
         if (localStorage.getItem(key)) continue;
         localStorage.setItem(key, '1');
@@ -202,14 +191,14 @@ export default function V2Page() {
         const job = (jobs || []).find(j => !j.channelId || j.channelId === 'chants');
         if (!job || runRef.current) return;
         runRef.current = true;
-        const publishAt = getNextPublishTime().toISOString();
         addLog(`📥 Cron job: "${(job.youtubeTitle || '').slice(0, 50)}"`);
         await startGeneration({
           script: job.script, style: 'divine', format: 'portrait',
           speedMultiplier: 1, narration: true, voice: 'Brian',
           titleText: job.titleText || '', youtubeTitle: job.youtubeTitle || '',
           youtubeDescription: job.youtubeDescription || '', youtubeTags: job.youtubeTags || CHANTS_TAGS,
-          channelId: 'chants', autoUpload: ytConnected, publishAt,
+          channelId: 'chants', autoUpload: ytConnected,
+          // no publishAt — goes live immediately on upload
           deity: job.deity || '', angle: job.angle || '', topic: job.topic || '', genre: 'chants',
           onComplete: (result) => {
             addLog(result.ytVideoUrl ? `🎉 Uploaded → ${result.ytVideoUrl}` : '📁 Rendered locally');
@@ -257,13 +246,13 @@ export default function V2Page() {
               <div className={styles.autoStatus}>{autoMode ? '🟢 Auto-mode ON' : '⚪ Auto-mode OFF'}</div>
               <div className={styles.autoDesc}>
                 {autoMode
-                  ? `Renders 45 min early · publishes at ${slots.map(formatIST).join(' · ')} IST`
+                  ? `Generates & posts at ${slots.map(formatIST).join(' · ')} IST · goes live immediately`
                   : 'Turn on for fully automatic daily publishing'}
               </div>
               {autoMode && (
                 <div className={styles.ctdRow}>
-                  Starts in <span className={styles.ctd}>{countdown}</span>
-                  {nextTrig && <span className={styles.ctdLabel}> · 45 min before {formatIST(nextTrig.slot)} IST slot</span>}
+                  Next in <span className={styles.ctd}>{countdown}</span>
+                  {nextTrig && <span className={styles.ctdLabel}> · starts generating at {formatIST(nextTrig.slot)} IST</span>}
                 </div>
               )}
             </div>
@@ -314,8 +303,8 @@ export default function V2Page() {
 
         {/* Schedule */}
         <div className={styles.card}>
-          <div className={styles.cardTitle}>🕐 Publish Schedule (IST)</div>
-          <div className={styles.cardSub}>YouTube publishes at these times. Rendering starts 45 min earlier.</div>
+          <div className={styles.cardTitle}>🕐 Generation Schedule (IST)</div>
+          <div className={styles.cardSub}>Generation starts at these times. Video goes live on YouTube as soon as rendering finishes (~5–10 min later).</div>
           <div className={styles.slotsRow}>
             {[0, 1, 2].map(i => (
               <div key={i} className={styles.slotCol}>
