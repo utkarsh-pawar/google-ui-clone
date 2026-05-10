@@ -37,11 +37,11 @@ const APPS = [
   },
   {
     id: 'auto-studio',
-    name: '🕉️ Auto Studio v2',
+    name: 'Auto Studio',
     icon: '🕉️',
     description: 'Zero-click spiritual YouTube Shorts. Set a schedule once — videos generate, render, and upload automatically.',
     color: '#6366f1',
-    href: '/v2',
+    href: '/auto-studio',
   },
 ];
 

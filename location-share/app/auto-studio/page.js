@@ -89,15 +89,15 @@ export default function V2Page() {
     const h = getUploadHistory();
     setHistory(h);
     setPerfRank(deityRanking(h));
-    setAutoMode(localStorage.getItem('v2_auto') === 'true');
-    try { setLog(JSON.parse(localStorage.getItem('v2_log') || '[]')); } catch {}
+    setAutoMode(localStorage.getItem('auto_studio_auto') === 'true');
+    try { setLog(JSON.parse(localStorage.getItem('auto_studio_log') || '[]')); } catch {}
   }, []);
 
   const addLog = useCallback((msg) => {
     const line = `${new Date().toLocaleTimeString()} — ${msg}`;
     setLog(prev => {
       const next = [line, ...prev].slice(0, 50);
-      try { localStorage.setItem('v2_log', JSON.stringify(next)); } catch {}
+      try { localStorage.setItem('auto_studio_log', JSON.stringify(next)); } catch {}
       return next;
     });
   }, []);
@@ -181,7 +181,7 @@ export default function V2Page() {
         const [h, m] = slot.split(':').map(Number);
         const trigMin = (h * 60 + m - EARLY_MIN + 24 * 60) % (24 * 60);
         if (Math.abs(istMin - trigMin) > 2) continue;
-        const key = `v2_fired_${new Date().toDateString()}_${slot}`;
+        const key = `auto_fired_${new Date().toDateString()}_${slot}`;
         if (localStorage.getItem(key)) continue;
         localStorage.setItem(key, '1');
         generate(slot);
@@ -243,7 +243,7 @@ export default function V2Page() {
           {ytConnected
             ? <button className={styles.ytConn} onClick={() => { disconnectYouTube('chants'); setYtConn(false); }}>📺 Connected ✓</button>
             : <a href="/api/youtube/auth?channelId=chants" className={styles.ytBtn}>🔗 Connect YouTube</a>}
-          <Link href="/v2/history" className={styles.navLink}>📊 History</Link>
+          <Link href="/auto-studio/history" className={styles.navLink}>📊 History</Link>
           <Link href="/video-creator/chants" className={styles.navLink}>v1 →</Link>
         </div>
       </header>
@@ -272,7 +272,7 @@ export default function V2Page() {
               onClick={() => {
                 const n = !autoMode;
                 setAutoMode(n);
-                localStorage.setItem('v2_auto', n);
+                localStorage.setItem('auto_studio_auto', n);
                 addLog(n ? '▶ Auto-mode ON' : '⏸ Auto-mode OFF');
               }}
             >{autoMode ? 'Turn Off' : 'Turn On'}</button>
@@ -355,7 +355,7 @@ export default function V2Page() {
                 </div>
               ))}
             </div>
-            <Link href="/v2/history" className={styles.detailLink}>Full breakdown →</Link>
+            <Link href="/auto-studio/history" className={styles.detailLink}>Full breakdown →</Link>
           </div>
         )}
 
@@ -364,7 +364,7 @@ export default function V2Page() {
           <div className={styles.cardHead}>
             <div className={styles.cardTitle}>📋 Activity Log</div>
             {log.length > 0 && (
-              <button className={styles.clearBtn} onClick={() => { setLog([]); localStorage.removeItem('v2_log'); }}>Clear</button>
+              <button className={styles.clearBtn} onClick={() => { setLog([]); localStorage.removeItem('auto_studio_log'); }}>Clear</button>
             )}
           </div>
           <div className={styles.logList}>
@@ -380,7 +380,7 @@ export default function V2Page() {
           <div className={styles.card}>
             <div className={styles.cardHead}>
               <div className={styles.cardTitle}>🎬 Recent Uploads</div>
-              <Link href="/v2/history" className={styles.seeAll}>See all →</Link>
+              <Link href="/auto-studio/history" className={styles.seeAll}>See all →</Link>
             </div>
             {recent.map((h, i) => (
               <div key={i} className={styles.uploadRow}>
