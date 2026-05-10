@@ -300,7 +300,7 @@ export default function ChannelSchedulerPage() {
                   <div className={styles.statusLabel}>KV Queue</div>
                   <div className={styles.statusVal}>{sysStatus.KV_queue?.startsWith('connected') ? 'Connected — queue persists across restarts' : 'Not set — queue is in-memory only (lost on restart)'}</div>
                   {!sysStatus.KV_queue?.startsWith('connected') && (
-                    <div className={styles.statusHint}>Add Vercel KV storage in Dashboard → Storage → Create KV → link to project</div>
+                    <div className={styles.statusHint}>Free setup: upstash.com → Create Database → copy REST URL + token → add UPSTASH_REDIS_REST_URL &amp; UPSTASH_REDIS_REST_TOKEN to Vercel env vars → redeploy</div>
                   )}
                 </div>
               </div>

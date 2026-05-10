@@ -1,35 +1,46 @@
-// Persistent job queue using Vercel KV.
-// Falls back to in-memory if KV env vars are not set (local dev).
+// Persistent job queue using Upstash Redis REST API directly (no package needed).
+// Supports both Upstash env vars and legacy Vercel KV env vars.
+// Falls back to in-memory when neither is set (local dev / first deploy).
+//
+// Setup (free): upstash.com → Create Database → copy REST URL + token
+// Add to Vercel env: UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 
 export const runtime = 'nodejs';
 
-const KV_QUEUE_KEY  = 'spiritual:queue';
-const KV_TOPICS_KEY = 'spiritual:recent_topics';
+const QUEUE_KEY  = 'spiritual:queue';
+const TOPICS_KEY = 'spiritual:recent_topics';
 
-// ── KV helpers (graceful no-op when KV not configured) ───────────────────────
+// ── Upstash REST helper ───────────────────────────────────────────────────────
 
-async function getKV() {
-  if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) return null;
-  try {
-    const { kv } = await import('@vercel/kv');
-    return kv;
-  } catch {
-    return null;
-  }
+function getRedisConfig() {
+  const url   = process.env.UPSTASH_REDIS_REST_URL   || process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+  return url && token ? { url, token } : null;
 }
 
-// ── In-memory fallback (unreliable on Vercel serverless — use KV in prod) ────
+async function redisCmd(...args) {
+  const cfg = getRedisConfig();
+  if (!cfg) return null;
+  const res = await fetch(`${cfg.url}/${args.map(encodeURIComponent).join('/')}`, {
+    headers: { Authorization: `Bearer ${cfg.token}` },
+  });
+  if (!res.ok) return null;
+  const { result } = await res.json();
+  return result;
+}
+
+// ── In-memory fallback ────────────────────────────────────────────────────────
 const memQueue = [];
 
 // ── Queue operations ──────────────────────────────────────────────────────────
 
 async function pushJob(job) {
-  const kv = await getKV();
-  if (kv) {
-    await kv.lpush(KV_QUEUE_KEY, JSON.stringify(job));
+  const cfg = getRedisConfig();
+  if (cfg) {
+    await redisCmd('LPUSH', QUEUE_KEY, JSON.stringify(job));
     if (job.topic) {
-      await kv.lpush(KV_TOPICS_KEY, job.topic);
-      await kv.ltrim(KV_TOPICS_KEY, 0, 29); // keep last 30 topics
+      await redisCmd('LPUSH', TOPICS_KEY, job.topic);
+      await redisCmd('LTRIM', TOPICS_KEY, '0', '29');
     }
   } else {
     memQueue.push(job);
@@ -37,27 +48,32 @@ async function pushJob(job) {
 }
 
 async function drainJobs() {
-  const kv = await getKV();
-  if (kv) {
-    const raw = await kv.lrange(KV_QUEUE_KEY, 0, -1);
-    if (raw.length) await kv.del(KV_QUEUE_KEY);
-    return raw.map(j => (typeof j === 'string' ? JSON.parse(j) : j)).reverse();
+  const cfg = getRedisConfig();
+  if (cfg) {
+    const raw = await redisCmd('LRANGE', QUEUE_KEY, '0', '-1');
+    if (Array.isArray(raw) && raw.length) {
+      await redisCmd('DEL', QUEUE_KEY);
+      return raw.map(j => {
+        try { return typeof j === 'string' ? JSON.parse(j) : j; } catch { return null; }
+      }).filter(Boolean).reverse();
+    }
+    return [];
   }
   return memQueue.splice(0);
 }
 
 export async function getRecentTopics() {
-  const kv = await getKV();
-  if (!kv) return [];
-  const topics = await kv.lrange(KV_TOPICS_KEY, 0, 29);
-  return topics.map(t => (typeof t === 'string' ? t : String(t)));
+  const cfg = getRedisConfig();
+  if (!cfg) return [];
+  const topics = await redisCmd('LRANGE', TOPICS_KEY, '0', '29');
+  return Array.isArray(topics) ? topics.map(String) : [];
 }
 
 // ── Route handlers ────────────────────────────────────────────────────────────
 
 export async function GET() {
   const jobs   = await drainJobs();
-  const source = process.env.KV_REST_API_URL ? 'kv' : 'memory';
+  const source = getRedisConfig() ? 'redis' : 'memory';
   return Response.json({ jobs, source });
 }
 
@@ -68,6 +84,6 @@ export async function POST(request) {
   }
   const job    = await request.json();
   await pushJob({ ...job, queuedAt: new Date().toISOString() });
-  const source = process.env.KV_REST_API_URL ? 'kv' : 'memory';
+  const source = getRedisConfig() ? 'redis' : 'memory';
   return Response.json({ ok: true, source });
 }
