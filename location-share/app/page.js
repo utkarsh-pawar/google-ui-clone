@@ -35,6 +35,14 @@ const APPS = [
     color: '#ec4899',
     href: '/video-creator',
   },
+  {
+    id: 'auto-studio',
+    name: '🕉️ Auto Studio v2',
+    icon: '🕉️',
+    description: 'Zero-click spiritual YouTube Shorts. Set a schedule once — videos generate, render, and upload automatically.',
+    color: '#6366f1',
+    href: '/v2',
+  },
 ];
 
 export default function Launcher() {
