@@ -86,7 +86,7 @@ export default function V2HistoryPage() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <Link href="/v2" className={styles.back}>← Auto Studio</Link>
+        <Link href="/auto-studio" className={styles.back}>← Auto Studio</Link>
         <div className={styles.headerTitle}>📊 History & Learnings</div>
         <button
           className={styles.syncBtn}
