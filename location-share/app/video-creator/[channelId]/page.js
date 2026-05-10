@@ -71,6 +71,27 @@ export default function ChannelVideoCreator() {
     setSelectedDeity('');
   };
 
+  // AI daily pick — fetched once on mount for spiritual channels
+  const [aiPick, setAiPick] = useState(null);
+  const [loadingAiPick, setLoadingAiPick] = useState(false);
+  const isSpiritual = SPIRITUAL_GENRES.includes(genre);
+
+  useEffect(() => {
+    if (!isSpiritual) return;
+    setLoadingAiPick(true);
+    fetch('/api/channel-manager')
+      .then(r => r.json())
+      .then(d => { if (d.ok) setAiPick(d.decision); })
+      .catch(() => {})
+      .finally(() => setLoadingAiPick(false));
+  }, [isSpiritual]);
+
+  const handleUseAiPick = () => {
+    if (!aiPick) return;
+    setSelectedDeity(aiPick.deity || '');
+    handlePickIdea({ topic: aiPick.topic, angle: aiPick.angle });
+  };
+
   const handleFetchIdeas = useCallback(async () => {
     setLoadingIdeas(true);
     setIdeas([]);
@@ -168,6 +189,31 @@ export default function ChannelVideoCreator() {
             <div className={styles.autoPanelTitle}>⚡ Auto-Generate</div>
             <Link href={`/video-creator/${channelId}/scheduler`} className={styles.scheduleLink}>Schedule →</Link>
           </div>
+
+          {/* AI Daily Pick — spiritual channels only */}
+          {isSpiritual && (
+            <div className={styles.aiPickCard}>
+              <div className={styles.aiPickLabel}>🤖 Today&apos;s AI Pick</div>
+              {loadingAiPick ? (
+                <div className={styles.aiPickLoading}><span className={styles.btnSpinner} /> Consulting the channel manager…</div>
+              ) : aiPick ? (
+                <>
+                  <div className={styles.aiPickDeity}>🙏 {aiPick.deity}</div>
+                  <div className={styles.aiPickTopic}>{aiPick.hindiTitle || aiPick.topic}</div>
+                  {aiPick.whyNow && <div className={styles.aiPickWhy}>📈 {aiPick.whyNow}</div>}
+                  <button
+                    className={styles.aiPickBtn}
+                    onClick={handleUseAiPick}
+                    disabled={generating}
+                  >
+                    {generating ? <><span className={styles.btnSpinner} /> Generating…</> : '⚡ Generate This Video'}
+                  </button>
+                </>
+              ) : (
+                <div className={styles.aiPickEmpty}>Add GROQ_API_KEY to Vercel to enable AI channel manager</div>
+              )}
+            </div>
+          )}
 
           {/* Genre */}
           <div className={styles.autoSection}>
