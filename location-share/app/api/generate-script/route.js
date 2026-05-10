@@ -171,15 +171,17 @@ Every S- image must SHOW exactly what the N- line SAYS or FEELS.
 S- lines are fed to an AI image generator. Write them in English. Make them hyper-detailed and visually specific.
 
 IMAGE QUALITY RULES FOR S- LINES:
-- Always name the deity with FULL canonical description. Never just "Krishna" — write: "Lord Krishna with divine blue complexion, peacock feather crown, yellow silk dhoti, golden flute, serene lotus eyes, divine golden aura"
-- Always name Hanuman as: "Lord Hanuman muscular divine form, saffron orange complexion, devotional expression, gada mace raised, tail curled above"
-- Always name Shiva as: "Lord Shiva matted jata hair with crescent moon, third eye, blue throat, tiger skin, sacred ash, trident"
-- Always name Ganesh as: "Lord Ganesha elephant head, four divine arms, saffron silk, modak, curved trunk, lotus throne"
-- Always name Rama as: "Lord Rama divine blue complexion, royal crown, bow and arrow, noble serene expression, yellow silk"
-- Always name Chanakya as: "Acharya Chanakya ancient wise sage, shaved head, simple robes, piercing intelligent eyes, holding scroll of wisdom"
-- For temples: "golden shikhara spire, intricate stone carvings, flower garlands, oil lamps glowing"
-- For nature scenes: "Ganga at dawn, golden mist, lotus flowers, prayer lamps floating, pink and gold sky"
-- For devotees: "devotee with tear-filled eyes, hands folded in prayer, forehead tilted, divine golden light washing over face"
+- Always name the deity clearly (Krishna, Shiva, Hanuman, Ganesha, Rama, Lakshmi, Vishnu, etc.) — the system auto-expands names with full visual descriptions.
+- After naming the deity, describe WHAT THEY ARE DOING and THE SCENE CONTEXT in vivid detail:
+  • Action: "seated in deep meditation", "playing flute by the Yamuna river bank", "blessing a weeping devotee", "lifting the Govardhana mountain effortlessly", "emerging from the cosmic ocean"
+  • Setting: "inside Dwarka golden palace", "on snowy Kailash peak surrounded by clouds", "battlefield of Kurukshetra at dawn", "inside a glowing temple with oil lamps", "under the Peepal tree at sunset"
+  • Lighting: "divine golden backlight rays streaming through clouds", "warm amber oil lamp glow", "soft pink dawn light", "dramatic temple shadow and candlelight", "celestial blue moonlight"
+  • Atmosphere: "thousands of marigold petals floating in the air", "incense smoke rising in golden spiral", "sacred Ganga water glowing with diyas", "stars and galaxies visible behind divine figure"
+  • Emotion: "serene bliss", "fierce protective energy", "unconditional compassion", "divine power radiating"
+- For temples: "golden shikhara spire carved stone, marigold garlands, oil diyas glowing amber, incense smoke, devotees bowing"
+- For nature scenes: "Ganga river at dawn, golden mist on water, lotus flowers floating, prayer diyas drifting, pink gold sunrise sky"
+- For devotees: "devotee tear-filled eyes, hands folded in prayer, forehead bowed, divine golden warm light washing over face, expression of complete surrender"
+- For cosmic scenes: "infinite cosmic void, stars and nebulae, divine golden mandala, sacred geometry, eternity"
 
 SCENE WRITING RULES:
 - ONE thought per N- line. Max 10 Hindi words. Slow, meditative, powerful.

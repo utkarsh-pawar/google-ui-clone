@@ -186,7 +186,7 @@ export default function V2Page() {
       addLog(`✅ Script ready: "${(data.youtubeTitle || d.topic).slice(0, 55)}"`);
       await startGeneration({
         script: data.script, style: 'divine', format: 'portrait',
-        speedMultiplier: 1, narration: true, voice: 'Brian',
+        speedMultiplier: 1, narration: true, voice: 'Brian', language: 'hi',
         titleText: data.suggestedTitle || '', youtubeTitle: data.youtubeTitle || d.topic,
         youtubeDescription: data.description || '', youtubeTags: data.tags || CHANTS_TAGS,
         channelId: 'chants', autoUpload: ytConnected,
@@ -240,7 +240,7 @@ export default function V2Page() {
         addLog(`📥 Cron job: "${(job.youtubeTitle || '').slice(0, 50)}"`);
         await startGeneration({
           script: job.script, style: 'divine', format: 'portrait',
-          speedMultiplier: 1, narration: true, voice: 'Brian',
+          speedMultiplier: 1, narration: true, voice: 'Brian', language: 'hi',
           titleText: job.titleText || '', youtubeTitle: job.youtubeTitle || '',
           youtubeDescription: job.youtubeDescription || '', youtubeTags: job.youtubeTags || CHANTS_TAGS,
           channelId: 'chants', autoUpload: ytConnected,
