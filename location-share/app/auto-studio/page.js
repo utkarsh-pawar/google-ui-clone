@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useGeneration } from '@/context/GenerationContext';
-import { loadSchedule, saveSchedule, formatIST, TIME_OPTIONS } from '@/lib/postingSchedule';
+import { loadSchedule, saveSchedule, formatIST } from '@/lib/postingSchedule';
 import { isYouTubeConnected, getUploadHistory, disconnectYouTube } from '@/lib/youtubeUtils';
 import styles from './page.module.css';
 
@@ -58,6 +58,52 @@ function deityRanking(history) {
     by[h.deity].n++;
   }
   return Object.entries(by).map(([d, s]) => ({ d, avg: Math.round(s.t / s.n) })).sort((a, b) => b.avg - a.avg);
+}
+
+// Convert stored "HH:MM" (24h) → { h, m, ampm } for display
+function to12h(slot) {
+  if (!slot) return { h: '8', m: '00', ampm: 'AM' };
+  const [hh, mm] = slot.split(':').map(Number);
+  const ampm = hh >= 12 ? 'PM' : 'AM';
+  const h12  = hh % 12 || 12;
+  return { h: String(h12), m: String(mm).padStart(2, '0'), ampm };
+}
+
+// Convert { h, m, ampm } → "HH:MM" (24h)
+function to24h(h, m, ampm) {
+  let hour = parseInt(h, 10);
+  if (ampm === 'PM' && hour !== 12) hour += 12;
+  if (ampm === 'AM' && hour === 12) hour = 0;
+  return `${String(hour).padStart(2, '0')}:${m}`;
+}
+
+const HOURS   = ['1','2','3','4','5','6','7','8','9','10','11','12'];
+const MINUTES = ['00','05','10','15','20','25','30','35','40','45','50','55'];
+
+function TimePicker({ value, onChange, onClear, label }) {
+  const { h, m, ampm } = to12h(value);
+  const update = (newH, newM, newAmpm) => onChange(to24h(newH, newM, newAmpm));
+  return (
+    <div className={styles.timePicker}>
+      <div className={styles.timeLabel}>{label}</div>
+      <div className={styles.timeRow}>
+        <select className={styles.timeSel} value={h} onChange={e => update(e.target.value, m, ampm)}>
+          {HOURS.map(hr => <option key={hr} value={hr}>{hr}</option>)}
+        </select>
+        <span className={styles.timeSep}>:</span>
+        <select className={styles.timeSel} value={m} onChange={e => update(h, e.target.value, ampm)}>
+          {MINUTES.map(mn => <option key={mn} value={mn}>{mn}</option>)}
+        </select>
+        <select className={styles.timeAmpm} value={ampm} onChange={e => update(h, m, e.target.value)}>
+          <option value="AM">AM</option>
+          <option value="PM">PM</option>
+        </select>
+        {onClear && (
+          <button className={styles.timeClear} onClick={onClear} title="Remove slot">✕</button>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function V2Page() {
@@ -305,25 +351,30 @@ export default function V2Page() {
         <div className={styles.card}>
           <div className={styles.cardTitle}>🕐 Generation Schedule (IST)</div>
           <div className={styles.cardSub}>Generation starts at these times. Video goes live on YouTube as soon as rendering finishes (~5–10 min later).</div>
-          <div className={styles.slotsRow}>
+          <div className={styles.slotsStack}>
             {[0, 1, 2].map(i => (
-              <div key={i} className={styles.slotCol}>
-                <div className={styles.slotLabel}>Slot {i + 1}</div>
-                <select
-                  className={styles.slotSel}
-                  value={slots[i] || ''}
-                  onChange={e => {
-                    const n = [...slots];
-                    if (e.target.value) n[i] = e.target.value; else n.splice(i, 1);
-                    const f = n.filter(Boolean);
-                    setSlots(f); saveSchedule(f);
-                  }}
-                >
-                  <option value="">— off —</option>
-                  {TIME_OPTIONS.map(t => <option key={t} value={t}>{formatIST(t)}</option>)}
-                </select>
-              </div>
+              slots[i]
+                ? <TimePicker
+                    key={i}
+                    label={`Slot ${i + 1}`}
+                    value={slots[i]}
+                    onChange={val => {
+                      const n = [...slots]; n[i] = val;
+                      setSlots(n); saveSchedule(n);
+                    }}
+                    onClear={slots.length > 1 ? () => {
+                      const n = slots.filter((_, j) => j !== i);
+                      setSlots(n); saveSchedule(n);
+                    } : null}
+                  />
+                : null
             ))}
+            {slots.length < 3 && (
+              <button className={styles.addSlot} onClick={() => {
+                const n = [...slots, '08:00'];
+                setSlots(n); saveSchedule(n);
+              }}>+ Add slot</button>
+            )}
           </div>
         </div>
 

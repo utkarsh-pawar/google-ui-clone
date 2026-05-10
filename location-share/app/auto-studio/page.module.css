@@ -63,11 +63,44 @@
 .runProg { margin-left: auto; font-size: 11px; color: #4a5580; }
 
 /* Schedule slots */
-.slotsRow { display: flex; gap: 10px; flex-wrap: wrap; }
-.slotCol { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 100px; }
-.slotLabel { font-size: 10px; font-weight: 700; color: #4a5580; text-transform: uppercase; letter-spacing: 0.06em; }
-.slotSel { background: #070b14; border: 1px solid #1a2035; color: #c8d0f0; padding: 10px 8px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; }
-.slotSel:focus { outline: none; border-color: #6366f1; }
+/* Schedule — time picker */
+.slotsStack { display: flex; flex-direction: column; gap: 10px; }
+
+.timePicker { background: #070b14; border: 1px solid #1a2035; border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+.timeLabel { font-size: 11px; font-weight: 700; color: #4a5580; text-transform: uppercase; letter-spacing: 0.06em; width: 44px; flex-shrink: 0; }
+.timeRow { display: flex; align-items: center; gap: 4px; }
+
+.timeSel {
+  background: #0d1526; border: 1px solid #1e2a42; color: #e2e8ff;
+  padding: 8px 4px; border-radius: 8px; font-size: 18px; font-weight: 700;
+  cursor: pointer; width: 52px; text-align: center;
+  appearance: none; -webkit-appearance: none;
+}
+.timeSel:focus { outline: none; border-color: #6366f1; }
+
+.timeAmpm {
+  background: #0d1526; border: 1px solid #1e2a42; color: #818cf8;
+  padding: 8px 6px; border-radius: 8px; font-size: 13px; font-weight: 800;
+  cursor: pointer; width: 56px; text-align: center;
+  appearance: none; -webkit-appearance: none; letter-spacing: 0.05em;
+}
+.timeAmpm:focus { outline: none; border-color: #6366f1; }
+
+.timeSep { font-size: 22px; font-weight: 800; color: #2d3a5a; line-height: 1; }
+
+.timeClear {
+  background: transparent; border: 1px solid #1a2035; color: #3d4f70;
+  width: 30px; height: 30px; border-radius: 6px; cursor: pointer; font-size: 11px;
+  display: flex; align-items: center; justify-content: center; margin-left: 6px; flex-shrink: 0;
+}
+.timeClear:hover { border-color: #ef4444; color: #ef4444; }
+
+.addSlot {
+  background: transparent; border: 1px dashed #1e2a42; color: #4a5580;
+  padding: 10px 18px; border-radius: 10px; font-size: 13px; cursor: pointer;
+  align-self: flex-start; transition: all 0.15s;
+}
+.addSlot:hover { border-color: #6366f1; color: #818cf8; }
 
 /* Performance ranking */
 .rankList { display: flex; flex-direction: column; gap: 8px; }
