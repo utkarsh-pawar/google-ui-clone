@@ -58,11 +58,16 @@ function injectDeityDescription(text) {
 }
 
 export const TTS_VOICES = [
-  { id: 'Brian', label: 'Brian (UK Male)' },
-  { id: 'Amy', label: 'Amy (UK Female)' },
-  { id: 'Joanna', label: 'Joanna (US Female)' },
-  { id: 'Matthew', label: 'Matthew (US Male)' },
-  { id: 'Joey', label: 'Joey (US Male)' },
+  // English (StreamElements)
+  { id: 'Brian',       label: 'Brian',   lang: 'en', desc: 'UK Male'    },
+  { id: 'Amy',         label: 'Amy',     lang: 'en', desc: 'UK Female'  },
+  { id: 'Joanna',      label: 'Joanna',  lang: 'en', desc: 'US Female'  },
+  { id: 'Matthew',     label: 'Matthew', lang: 'en', desc: 'US Male'    },
+  { id: 'Joey',        label: 'Joey',    lang: 'en', desc: 'US Male'    },
+  // Hindi (Google TTS)
+  { id: 'hi-narrator', label: 'वाचक',   lang: 'hi', desc: 'Narrator'   },
+  { id: 'hi-male',     label: 'पुरुष',  lang: 'hi', desc: 'Male'       },
+  { id: 'hi-female',   label: 'महिला',  lang: 'hi', desc: 'Female'     },
 ];
 
 // Characters that map to male voices

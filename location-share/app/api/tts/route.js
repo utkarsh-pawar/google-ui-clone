@@ -13,8 +13,13 @@ const FEMALE_CHARS = new Set([
 
 function getGender(character) {
   const lc = (character || '').toLowerCase().trim();
-  if (MALE_CHARS.has(lc))  return 'male';
-  if (CHILD_CHARS.has(lc)) return 'child';
+  // Direct gender keywords (used by Hindi voice ids: hi-male, hi-female, hi-narrator)
+  if (lc === 'male')     return 'male';
+  if (lc === 'female')   return 'female';
+  if (lc === 'narrator') return 'narrator';
+  if (lc === 'child')    return 'child';
+  if (MALE_CHARS.has(lc))   return 'male';
+  if (CHILD_CHARS.has(lc))  return 'child';
   if (FEMALE_CHARS.has(lc)) return 'female';
   return 'narrator';
 }
@@ -142,8 +147,12 @@ export async function GET(request) {
   const text      = (searchParams.get('text')      || '').slice(0, 500).trim();
   const voice     = searchParams.get('voice')     || 'Brian';
   const lang      = searchParams.get('lang')      || 'en';
-  const character = searchParams.get('character') || '';
   const style     = searchParams.get('style')     || '';
+  // If voice encodes a Hindi gender hint (hi-male / hi-female / hi-narrator),
+  // use it as the character for voice selection; otherwise use the character param.
+  const character = voice.startsWith('hi-')
+    ? voice.replace('hi-', '')    // 'hi-male' → 'male', 'hi-narrator' → 'narrator'
+    : (searchParams.get('character') || '');
 
   if (!text) return new Response('Missing text', { status: 400 });
 
